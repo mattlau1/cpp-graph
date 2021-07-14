@@ -45,6 +45,7 @@
 <li><a href="#210-other-notes-othernotes"><span class="toc-section-number">2.10</span> Other notes [other.notes]<span></span></a>
 <ul>
 <li><a href="#2101-const-correctness-constcorrectness"><span class="toc-section-number">2.10.1</span> <code class="sourceCode default">const</code>-correctness [const.correctness]<span></span></a></li>
+<li><a href="#2102-member-types-gdwgtypes"><span class="toc-section-number">2.10.2</span> Member types [gdwg.types]</a></li>
 </ul></li>
 </ul></li>
 <li><a href="#3-getting-started"><span class="toc-section-number">3</span> Getting Started<span></span></a>
@@ -59,7 +60,9 @@
 </ul>
 </div>
 <h1 data-number="1" id="change-log"><span class="header-section-number">1</span> Change Log<a href="#change-log" class="self-link"></a></h1>
-N/A
+
+- **2021-07-14**: Replaced some member types of `iterator`, clarified usage of `value_type`, fixed some CMake issues
+
 <h1 data-number="2" id="the-task"><span class="header-section-number">2</span> The Task<a href="#the-task" class="self-link"></a></h1>
 <p>Write a <code class="sourceCode default">graph</code> library type in C++, in <code class="sourceCode default">include/gdwg/graph.hpp</code>.</p>
 <p>In this assignment, you will write a <em>generic directed weighted graph</em> (GDWG) with value-semantics in C++. Both the data stored at a node and the weight stored at an edge will be parameterised types. The types may be different. For example, here is a graph with nodes storing <code class="sourceCode default">std::string</code> and edges weighted by <code class="sourceCode default">int</code>:</p>
@@ -113,9 +116,9 @@ N/A
 <p><br /></p>
 
 <div class="sourceCode" id="cb4"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true"></a><span class="kw">template</span><span class="op">&lt;</span>typename InputIt<span class="op">&gt;</span>
-<span id="cb4-2"><a href="#cb4-2" aria-hidden="true"></a>
 <span id="cb4-3"><a href="#cb4-3" aria-hidden="true"></a>graph<span class="op">(</span>InputIt first, InputIt last<span class="op">)</span>;</span></code></pre></div>
 <ol start="4" type="1">
+<li><em>Preconditions</em>: Type <code>InputIt</code> models <em><a href="https://en.cppreference.com/w/cpp/named_req/InputIterator">Cpp17InputIterator</a></em> and is indirectly readable as type <code>N</code>.</li>
 <li><em>Effects</em>: Initialises the graph’s node collection with the range <code class="sourceCode default">[first, last)</code>.</li>
 </ol>
 <p><br /></p>
@@ -337,7 +340,11 @@ N/A
 <span id="cb32-12"><a href="#cb32-12" aria-hidden="true"></a>  <span class="op">{</span><span class="dv">5</span>, <span class="dv">2</span>, <span class="dv">7</span><span class="op">}</span>,</span>
 <span id="cb32-13"><a href="#cb32-13" aria-hidden="true"></a><span class="op">}</span>;</span>
 <span id="cb32-14"><a href="#cb32-14" aria-hidden="true"></a></span>
-<span id="cb32-15"><a href="#cb32-15" aria-hidden="true"></a><span class="kw">auto</span> g <span class="op">=</span> graph<span class="op">(</span>v<span class="op">.</span>begin<span class="op">()</span>, v<span class="op">.</span>end<span class="op">())</span>;</span>
+<span id="cb32-15"><a href="#cb32-15" aria-hidden="true"></a><span class="kw">auto</span> g <span class="op">=</span> graph<span class="op">{}</span>;</span>
+for (const auto& x : v) {
+  g.insert_edge(x);
+};
+<span></span>
 <span id="cb32-16"><a href="#cb32-16" aria-hidden="true"></a>g<span class="op">.</span>insert_node<span class="op">(</span><span class="dv">64</span><span class="op">)</span>;</span>
 <span id="cb32-17"><a href="#cb32-17" aria-hidden="true"></a><span class="kw">auto</span> out <span class="op">=</span> std<span class="op">::</span>ostringstream<span class="op">{}</span>;</span>
 <span id="cb32-18"><a href="#cb32-18" aria-hidden="true"></a>out <span class="op">&lt;&lt;</span> g;</span>
@@ -372,8 +379,9 @@ N/A
 <div class="sourceCode" id="cb33"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true"></a><span class="kw">template</span><span class="op">&lt;</span>typename N, typename E<span class="op">&gt;</span></span>
 <span id="cb33-3"><a href="#cb33-3" aria-hidden="true"></a><span class="kw">class</span> graph<span class="op">&lt;</span>N, E<span class="op">&gt;::</span>iterator <span class="op">{</span></span>
 <span id="cb33-4"><a href="#cb33-4" aria-hidden="true"></a><span class="kw">public</span><span class="op">:</span></span>
-<span id="cb33-5"><a href="#cb33-5" aria-hidden="true"></a>  <span class="kw">using</span> value_type <span class="op">=</span> std<span class="op">::</span>tuple<span class="op">&lt;</span>N, N, E<span class="op">&gt;</span>;</span>
-<span id="cb33-5"><a href="#cb33-5" aria-hidden="true"></a>  <span class="kw">using</span> reference <span class="op">=</span> value_type</span>
+<span id="cb33-5"><a href="#cb33-5" aria-hidden="true"></a>  <span class="kw">using</span> value_type <span class="op">=</span> graph&lt;N, E&gt;::value_type;</span>
+<span id="cb33-5"><a href="#cb33-5" aria-hidden="true"></a>  <span class="kw">using</span> reference <span class="op">=</span> value_type;</span>
+<span id="cb33-X"><a href="#cb33-X" aria-hidden="true"></a>  <span class="kw">using</span> pointer <span class="op">=</span> <span class="kw">void</span>;</span>
 <span id="cb33-6"><a href="#cb33-6" aria-hidden="true"></a>  <span class="kw">using</span> difference_type <span class="op">=</span> std<span class="op">::</span><span class="dt">ptrdiff_t</span>;</span>
 <span id="cb33-7"><a href="#cb33-7" aria-hidden="true"></a>  <span class="kw">using</span> iterator_category <span class="op">=</span> std<span class="op">::</span>bidirectional_iterator_tag;</span>
 <span id="cb33-8"><a href="#cb33-8" aria-hidden="true"></a></span>
@@ -381,7 +389,7 @@ N/A
 <span id="cb33-10"><a href="#cb33-10" aria-hidden="true"></a>  iterator<span class="op">()</span> <span class="op">=</span> <span class="cf">default</span>;</span>
 <span id="cb33-11"><a href="#cb33-11" aria-hidden="true"></a></span>
 <span id="cb33-12"><a href="#cb33-12" aria-hidden="true"></a>  <span class="co">// Iterator source</span></span>
-<span id="cb33-13"><a href="#cb33-13" aria-hidden="true"></a>  <span class="kw">auto</span> <span class="kw">operator</span><span class="op">*()</span> <span class="op">-&gt;</span> std<span class="op">::</span>tuple<span class="op">&lt;</span>N <span class="kw">const</span><span class="op">&amp;</span>, N <span class="kw">const</span><span class="op">&amp;</span>, E <span class="kw">const</span><span class="op">&amp;&gt;</span>;</span>
+<span id="cb33-13"><a href="#cb33-13" aria-hidden="true"></a>  <span class="kw">auto</span> <span class="kw">operator</span><span class="op">*()</span> <span class="op">-&gt;</span> reference;</span>
 <span id="cb33-14"><a href="#cb33-14" aria-hidden="true"></a></span>
 <span id="cb33-15"><a href="#cb33-15" aria-hidden="true"></a>  <span class="co">// Iterator traversal</span></span>
 <span id="cb33-16"><a href="#cb33-16" aria-hidden="true"></a>  <span class="kw">auto</span> <span class="kw">operator</span><span class="op">++()</span> <span class="op">-&gt;</span> iterator<span class="op">&amp;</span>;</span>
@@ -412,16 +420,9 @@ N/A
 <li><p><em>Remarks</em>: There may be multiple constructors with a non-zero number of parameters.</p></li>
 </ol>
 <h3 data-number="2.8.2" id="iterator-source-gdwg.iterator.source"><span class="header-section-number">2.8.2</span> Iterator source [gdwg.iterator.source]<a href="#iterator-source-gdwg.iterator.source" class="self-link"></a></h3>
-<div class="sourceCode" id="cb36"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true"></a><span class="kw">auto</span> <span class="kw">operator</span><span class="op">*()</span> <span class="op">-&gt;</span> std<span class="op">::</span>
-tuple<span class="op">&lt;</span>N <span class="kw">const</span><span class="op">&amp;</span>, N <span class="kw">const</span><span class="op">&amp;</span>, E <span class="kw">const</span><span class="op">&amp;&gt;</span>;</span></code></pre></div>
+<div class="sourceCode" id="cb36"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true"></a><span class="kw">auto</span> <span class="kw">operator</span><span class="op">*()</span> <span class="op">-&gt;</span> reference;</span></code></pre></div>
 <ol type="1">
-<li><em>Effects</em>: Equivalent to:</li>
-</ol>
-<div class="sourceCode" id="cb37"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true"></a><span class="kw">using</span> result_type <span class="op">=</span> std<span class="op">::</span>tuple<span class="op">&lt;</span>N <span class="kw">const</span><span class="op">&amp;</span>, N <span class="kw">const</span><span class="op">&amp;</span>, E <span class="kw">const</span><span class="op">&amp;&gt;</span>;</span>
-<span id="cb37-2"><a href="#cb37-2" aria-hidden="true"></a><span class="cf">return</span> result_type<span class="op">(</span>pointee_<span class="op">-&gt;</span>from, pointee_<span class="op">-&gt;</span>to, pointee_<span class="op">-&gt;</span>weight<span class="op">)</span>;</span></code></pre></div>
-<ol start="2" type="1">
-<li><p><em>Remarks</em>: <code class="sourceCode default">std::tuple</code> is almost completely interface-compatible with <a href="https://en.cppreference.com/w/cpp/utility/tuple"><code class="sourceCode default">std::tuple</code></a>, but has subtle differences that make this assignment possible.</p></li>
-<li><p>[<em>Note</em>: Do <strong>not</strong> use <code class="sourceCode default">std::make_tuple</code> or <code class="sourceCode default">std::make_tuple</code>, as these will always copy values instead of returning references. —<em>end note</em>]</p></li>
+<li><em>Effects</em>: Returns the current <code>from</code>, <code>to</code>, and <code>weight</code>.</li>
 </ol>
 <h3 data-number="2.8.3" id="iterator-traversal-gdwg.iterator.traversal"><span class="header-section-number">2.8.3</span> Iterator traversal [gdwg.iterator.traversal]<a href="#iterator-traversal-gdwg.iterator.traversal" class="self-link"></a></h3>
 <div class="sourceCode" id="cb38"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true"></a><span class="kw">auto</span> <span class="kw">operator</span><span class="op">++()</span> <span class="op">-&gt;</span> iterator<span class="op">&amp;</span>;</span></code></pre></div>
@@ -525,6 +526,19 @@ tuple<span class="op">&lt;</span>N <span class="kw">const</span><span class="op"
 </ul>
 <p>Please think carefully about this. The function declarations intentionally do not specify their constness, except for the <code class="sourceCode default">begin()</code> and <code class="sourceCode default">end()</code> member functions. These are <code class="sourceCode default">const</code>-qualified to help you out.</p>
 <p>In most cases you will only need a single function in the overload set.</p>
+<h3 data-number="2.10.2" id="member-types"><span class="header-section-number">2.10.2</span> Member types [gdwg.types]<a href="#member-types" class="self-link"></a></h3>
+<p>For convience's sake, inside the <code>graph</code> class you should have a member type <code>value_type</code>, defined like so:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">class graph {
+public:
+  struct value_type {
+    N from;
+    N to;
+    E weight;
+  };
+  // ...
+};
+</code></pre></div>
+<p>As noted in <a href="#29-compulsory-internal-representation-gdwginternal">the compulsory internal representation</a> section, you are unlikely to want to use this directly within your representation. However, it is used by the <code>iterator</code> type, and is good practice to have for a container.</P>
 <h1 data-number="3" id="getting-started"><span class="header-section-number">3</span> Getting Started<a href="#getting-started" class="self-link"></a></h1>
 <p>If you haven’t done so already, clone this repository.</p>
 <div class="sourceCode" id="cb2"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true"></a>$ <span class="fu">git</span> clone gitlab@gitlab.cse.unsw.edu.au:z5555555/20T2-cs6771-ass3</span></code></pre></div>
