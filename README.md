@@ -62,6 +62,7 @@
 <h1 data-number="1" id="change-log"><span class="header-section-number">1</span> Change Log<a href="#change-log" class="self-link"></a></h1>
 
 - **2021-07-14**: Replaced some member types of `iterator`, clarified usage of `value_type`, fixed some CMake issues
+- **2021-07-16**: Softened the restriction on edge heap memory duplication: _For each edge, you should avoid not using unnecessary additional memory wherever possible._
 
 <h1 data-number="2" id="the-task"><span class="header-section-number">2</span> The Task<a href="#the-task" class="self-link"></a></h1>
 <p>Write a <code class="sourceCode default">graph</code> library type in C++, in <code class="sourceCode default">include/gdwg/graph.hpp</code>.</p>
@@ -488,8 +489,9 @@ for (const auto& x : v) {
 <span id="cb46-12"><a href="#cb46-12" aria-hidden="true"></a><span class="op">}</span></span></code></pre></div>
 <p>Your graph is <strong>required</strong> to use smart pointers (however you please) to solve this problem.</p>
 <ol type="1">
-<li><p>For each edge, you are only allowed to have one underlying resource (heap) stored in your graph for it. [<em>Note</em>: You may store a unique weight multiple times, but no more than once for each distinct edge with that weight.—<em>end note</em>]</p></li>
 <li><p>For each node, you are only allowed to have one underlying resource (heap) stored in your graph for it.</p></li>
+<li><p>For each edge, you should avoid not using unnecessary additional memory wherever possible.</p></li>
+
 <li><p>[<em>Hint</em>: In your own implementation you’re likely to use some containers to store things, and depending on your implementation choice, somewhere in those containers you’ll likely use either <code class="sourceCode default">std::unique_ptr&lt;N&gt;</code> or <code class="sourceCode default">std::shared_ptr&lt;N&gt;</code> —<em>end hint</em>]</p></li>
 </ol>
 <h3 data-number="2.9.1" id="but-why-smart-pointers-gdwg.internal.rationale"><span class="header-section-number">2.9.1</span> But why smart pointers [gdwg.internal.rationale]<a href="#but-why-smart-pointers-gdwg.internal.rationale" class="self-link"></a></h3>
