@@ -63,6 +63,9 @@
 
 - **2021-07-14**: Replaced some member types of `iterator`, clarified usage of `value_type`, fixed some CMake issues
 - **2021-07-16**: Softened the restriction on edge heap memory duplication: _For each edge, you should avoid not using unnecessary additional memory wherever possible._
+- **2021-07-31**: Halved late penalty as per Webcms3 notice
+- **2021-07-31**: Changed "are pointing to elements" to "are pointing to the same elements"
+- **2021-07-31**: Updated the large code example for the correct insert into graph source code
 
 <h1 data-number="2" id="the-task"><span class="header-section-number">2</span> The Task<a href="#the-task" class="self-link"></a></h1>
 <p>Write a <code class="sourceCode default">graph</code> library type in C++, in <code class="sourceCode default">include/gdwg/graph.hpp</code>.</p>
@@ -342,9 +345,11 @@
 <span id="cb32-13"><a href="#cb32-13" aria-hidden="true"></a><span class="op">}</span>;</span>
 <span id="cb32-14"><a href="#cb32-14" aria-hidden="true"></a></span>
 <span id="cb32-15"><a href="#cb32-15" aria-hidden="true"></a><span class="kw">auto</span> g <span class="op">=</span> graph<span class="op">{}</span>;</span>
-for (const auto& x : v) {
-  g.insert_edge(x);
-};
+for (const auto& [from, to, weight] : v) {
+  g.insert_node(from);
+  g.insert_node(to);
+  g.insert_edge(from, to, weight)
+}
 <span></span>
 <span id="cb32-16"><a href="#cb32-16" aria-hidden="true"></a>g<span class="op">.</span>insert_node<span class="op">(</span><span class="dv">64</span><span class="op">)</span>;</span>
 <span id="cb32-17"><a href="#cb32-17" aria-hidden="true"></a><span class="kw">auto</span> out <span class="op">=</span> std<span class="op">::</span>ostringstream<span class="op">{}</span>;</span>
@@ -471,7 +476,7 @@ for (const auto& x : v) {
 <h3 data-number="2.8.4" id="iterator-comparison-gdwg.iterator.comparison"><span class="header-section-number">2.8.4</span> Iterator comparison [gdwg.iterator.comparison]<a href="#iterator-comparison-gdwg.iterator.comparison" class="self-link"></a></h3>
 <div class="sourceCode" id="cb45"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb45-1"><a href="#cb45-1" aria-hidden="true"></a><span class="kw">auto</span> <span class="kw">operator</span><span class="op">==(</span>iterator <span class="kw">const</span><span class="op">&amp;</span> other<span class="op">)</span> <span class="op">-&gt;</span> <span class="dt">bool</span>;</span></code></pre></div>
 <ol type="1">
-<li><em>Returns</em>: <code class="sourceCode default">true</code> if <code class="sourceCode default">*this</code> and <code class="sourceCode default">other</code> are pointing to elements in the same iterable list, and <code class="sourceCode default">false</code> otherwise.</li>
+<li><em>Returns</em>: <code class="sourceCode default">true</code> if <code class="sourceCode default">*this</code> and <code class="sourceCode default">other</code> are pointing to the same elements in the same iterable list, and <code class="sourceCode default">false</code> otherwise.</li>
 </ol>
 <h2 data-number="2.9" id="compulsory-internal-representation-gdwg.internal"><span class="header-section-number">2.9</span> Compulsory internal representation [gdwg.internal]<a href="#compulsory-internal-representation-gdwg.internal" class="self-link"></a></h2>
 <p>Your graph is <strong>required</strong> to own the resources (nodes and edge weights) that are passed in through the insert functions. This means creating memory on the heap and doing a proper copy of the values from the caller. This is because resources in your graph should outlive the caller’s resouce that was passed in in case it goes out of scope. For example, we want the following code to be valid.</p>
