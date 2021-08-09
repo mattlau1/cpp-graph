@@ -10,7 +10,7 @@
          "name": "Launch LLDB",
          "program": "${command:cmake.launchTargetPath}",
          "args": [],
-         "cwd": "${workspaceFolder}/build/test/euclidean_vector",
+         "cwd": "${workspaceFolder}/build/test/graph",
          "env": {
             "ASAN_OPTIONS": "detect_leaks=0"
          }
@@ -21,7 +21,7 @@
          "name": "Launch GDB",
          "target": "${command:cmake.launchTargetPath}",
          "arguments": "",
-         "cwd": "${workspaceFolder}/build/test/euclidean_vector",
+         "cwd": "${workspaceFolder}/build/test/graph",
          "env": {
             "ASAN_OPTIONS": "detect_leaks=0"
          }
