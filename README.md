@@ -61,11 +61,7 @@
 </div>
 <h1 data-number="1" id="change-log"><span class="header-section-number">1</span> Change Log<a href="#change-log" class="self-link"></a></h1>
 
-- **2021-07-14**: Replaced some member types of `iterator`, clarified usage of `value_type`, fixed some CMake issues
-- **2021-07-16**: Softened the restriction on edge heap memory duplication: _For each edge, you should avoid not using unnecessary additional memory wherever possible._
-- **2021-07-31**: Halved late penalty as per Webcms3 notice
-- **2021-07-31**: Changed "are pointing to elements" to "are pointing to the same elements"
-- **2021-07-31**: Updated the large code example for the correct insert into graph source code
+- **2022-07-10**: Initial Release
 
 <h1 data-number="2" id="the-task"><span class="header-section-number">2</span> The Task<a href="#the-task" class="self-link"></a></h1>
 <p>Write a <code class="sourceCode default">graph</code> library type in C++, in <code class="sourceCode default">include/gdwg/graph.hpp</code>.</p>
@@ -492,9 +488,9 @@ for (const auto& [from, to, weight] : v) {
 <span id="cb46-10"><a href="#cb46-10" aria-hidden="true"></a>  <span class="co">//  will still be in here.</span></span>
 <span id="cb46-11"><a href="#cb46-11" aria-hidden="true"></a>  std<span class="op">::</span>cout <span class="op">&lt;&lt;</span> g<span class="op">.</span>is_node<span class="op">(</span><span class="st">&quot;Hello&quot;</span><span class="op">)</span> <span class="op">&lt;&lt;</span> <span class="st">&quot;</span><span class="sc">\n</span><span class="st">&quot;</span>; <span class="co">// prints &#39;true&#39;;</span></span>
 <span id="cb46-12"><a href="#cb46-12" aria-hidden="true"></a><span class="op">}</span></span></code></pre></div>
-<p>Your graph is <strong>required</strong> to use smart pointers (however you please) to solve this problem.</p>
+<p>Your graph is <strong>required</strong> to use smart pointers (<i>however</i> you please) to solve this problem.</p>
 <ol type="1">
-<li><p>For each node, you are only allowed to have one underlying resource (heap) stored in your graph for it.</p></li>
+<li><p>For each node, you are only allowed to have one underlying resource (heap) stored in your graph for it. This means every <code> N</code> can only be stored once per graph instance.</p></li>
 <li><p>For each edge, you should avoid not using unnecessary additional memory wherever possible.</p></li>
 
 <li><p>[<em>Hint</em>: In your own implementation you’re likely to use some containers to store things, and depending on your implementation choice, somewhere in those containers you’ll likely use either <code class="sourceCode default">std::unique_ptr&lt;N&gt;</code> or <code class="sourceCode default">std::shared_ptr&lt;N&gt;</code> —<em>end hint</em>]</p></li>
@@ -502,7 +498,7 @@ for (const auto& [from, to, weight] : v) {
 <h3 data-number="2.9.1" id="but-why-smart-pointers-gdwg.internal.rationale"><span class="header-section-number">2.9.1</span> But why smart pointers [gdwg.internal.rationale]<a href="#but-why-smart-pointers-gdwg.internal.rationale" class="self-link"></a></h3>
 <p>You could feasibly implement the assignment without any smart pointers, through lots of redundant copying. For example, having a massive data structure like:</p>
 <div class="sourceCode" id="cb47"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb47-1"><a href="#cb47-1" aria-hidden="true"></a>std<span class="op">::</span>map<span class="op">&lt;</span>N, std<span class="op">::</span>vector<span class="op">&lt;</span>std<span class="op">::</span>pair<span class="op">&lt;</span>N, E<span class="op">&gt;&gt;&gt;</span></span></code></pre></div>
-<p>You can see that in this structure you would have duplicates of nodes when trying to represent this complex structure. This takes up a lot of space. We want you to build a space efficient graph. This means only storing one instance of each node and edge.</p>
+<p>You can see that in this structure you would have duplicates of nodes when trying to represent this complex structure. This takes up a lot of space. We want you to build a space efficient graph.</p>
 <h2 data-number="2.10" id="other-notes-other.notes"><span class="header-section-number">2.10</span> Other notes [other.notes]<a href="#other-notes-other.notes" class="self-link"></a></h2>
 <p>You must:</p>
 <ul>
@@ -512,7 +508,6 @@ for (const auto& [from, to, weight] : v) {
 <li>Leave a moved-from object in a state with no nodes.</li>
 <li>Implement this class within the namespace <code class="sourceCode default">gdwg</code>.</li>
 <li>Assignment 2 asked you to implement <code class="sourceCode default">operator!=</code> because you’ll see it in a lot of production codebases, and it’s important that you know how to write it correctly. To get used to how C++20 handles <code class="sourceCode default">operator!=</code>, we’re asking that you <strong>do not</strong> implement an overload for <code class="sourceCode default">operator!=</code> in Assignment 3.</li>
-<li><strong>Write a <a href="https://github.com/adam-p/markdown-here/wiki/Markdown-Cheatsheet">Markdown</a> document <code class="sourceCode default">test/README.md</code> explaining your rationale behind the decisions you made while testing.</strong></li>
 </ul>
 <p>You must not:</p>
 <ul>
@@ -534,7 +529,7 @@ for (const auto& [from, to, weight] : v) {
 <p>Please think carefully about this. The function declarations intentionally do not specify their constness, except for the <code class="sourceCode default">begin()</code> and <code class="sourceCode default">end()</code> member functions. These are <code class="sourceCode default">const</code>-qualified to help you out.</p>
 <p>In most cases you will only need a single function in the overload set.</p>
 <h3 data-number="2.10.2" id="member-types"><span class="header-section-number">2.10.2</span> Member types [gdwg.types]<a href="#member-types" class="self-link"></a></h3>
-<p>For convience's sake, inside the <code>graph</code> class you should have a member type <code>value_type</code>, defined like so:</p>
+<p>For convenience's sake, inside the <code>graph</code> class you will likely have a member type <code>value_type</code>, defined like so:</p>
 <div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">class graph {
 public:
   struct value_type {
@@ -548,7 +543,7 @@ public:
 <p>As noted in <a href="#29-compulsory-internal-representation-gdwginternal">the compulsory internal representation</a> section, you are unlikely to want to use this directly within your representation. However, it is used by the <code>iterator</code> type, and is good practice to have for a container.</P>
 <h1 data-number="3" id="getting-started"><span class="header-section-number">3</span> Getting Started<a href="#getting-started" class="self-link"></a></h1>
 <p>If you haven’t done so already, clone this repository.</p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true"></a>$ <span class="fu">git</span> clone gitlab@gitlab.cse.unsw.edu.au:z5555555/20T2-cs6771-ass3</span></code></pre></div>
+<div class="sourceCode" id="cb2"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true"></a>$ <span class="fu">git</span> clone gitlab@gitlab.cse.unsw.edu.au:COMP6771/22T2/students/z5258801/ass3.git</span></code></pre></div>
 <p>(Note: Replace z5555555 with your zid)</p>
 <p>Navigate inside the directory. You can then open vscode with <code class="sourceCode default">code .</code> (note the dot).</p>
 <h2 data-number="3.1" id="running-your-tests"><span class="header-section-number">3.1</span> Running your tests<a href="#running-your-tests" class="self-link"></a></h2>
@@ -580,7 +575,7 @@ dozen if statements).
     <td>
       <b>Your tests</b><br />
       You are required to write your own tests to ensure your program works.
-      You will write tests in the <code>test/</code> directory. At the top of each file you will also include a block comment to explain the rational and approach you took to writing tests. Please read the <a href="https://github.com/catchorg/Catch2/blob/master/docs/tutorial.md">Catch2 tutorial</a> or review lecture/tutorial content to see how to write tests. Tests will be marked on several
+      You will write tests in the <code>test/</code> directory. At the top of <strong> ONE </strong> file you will also include a block comment to explain the rationale and approach you took to writing tests. Please read the <a href="https://github.com/catchorg/Catch2/blob/master/docs/tutorial.md">Catch2 tutorial</a> or review lecture/tutorial content to see how to write tests. Tests will be marked on several
       factors. These include, but are not limited to:
       <ul>
         <li>Correctness — an incorrect test is worse than useless.</li>
@@ -598,7 +593,6 @@ dozen if statements).
           means splitting it up into appropriately sized sub-tests, amongst other things).
         </li>
       </ul>
-      At least half of the marks of this section may be awarded with the expectation that your own tests pass your own code.
     </td>
   </tr>
   <tr>
@@ -662,8 +656,7 @@ the assignment submissions but it will remain broadly similar to the description
 <h1 data-number="6" id="submission"><span class="header-section-number">6</span> Submission<a href="#submission" class="self-link"></a></h1>
 
 
-This assignment is due *Monday 2nd of August at 19:59:59 (Week 10)*.
-Submit the assignment using the following comand while logged into the CSE machines:
+This assignment is due *Monday 1st of August at 19:59:59 (Week 10)*.
 
 Our systems automatically record the most recent push you make to your master branch. Therefore,
 to "submit" your code you simply need to make sure that your master branch (on the gitlab website)
@@ -673,12 +666,12 @@ It is your responsibiltiy to ensure that your code can be successfully demonstra
 from a fresh clone of your repository. Failure to ensure this may result in a loss of marks.
 
 <h1 data-number="7" id="late-submission-policy"><span class="header-section-number">7</span> Late Submission Policy<a href="#late-submission-policy" class="self-link"></a></h1>
-If your assignment is submitted after this date, each hour it is late reduces the maximum mark it can achieve by 2%.
 
-For example if an assignment you submitted with a raw awarded mark of 85% was submitted 5 hours late, the late submission would have no effect (as maximum mark would be 90%).
+If your assignment is submitted after this date, each hour it is late reduces the maximum mark it can achieve by 0.2% up to 120 hours late, after which it will receive 0.
 
-If the same assignment was submitted 10 hours late it would be awarded
-80%, the maximum mark it can achieve at that time.
+For example if an assignment you submitted with a raw awarded mark of 90% was submitted 5 hours late, the late submission would have no effect (as maximum mark would be 99%).
+
+If the same assignment was submitted 72 hours late it would be awarded 85%, the maximum mark it can achieve at that time.
 
 This late penalty has been amended from the original specification, and you should not assume it will be the same for future assignments.
 

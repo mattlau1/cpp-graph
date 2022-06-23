@@ -40,7 +40,7 @@ function(cxx_test)
    cxx_executable(${ARGN})
 
    PROJECT_TEMPLATE_EXTRACT_ADD_TARGET_ARGS(${ARGN})
-   target_link_libraries("${add_target_args_TARGET}" PRIVATE Catch2::Catch2 test_main)
+   target_link_libraries("${add_target_args_TARGET}" PRIVATE test_main)
    target_compile_options("${add_target_args_TARGET}" PRIVATE -Wno-error -Wno-self-assign-overloaded)
    add_test("test.${add_target_args_TARGET}" "${add_target_args_TARGET}")
 endfunction()

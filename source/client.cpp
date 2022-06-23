@@ -1,9 +1,10 @@
+#include <gdwg/graph.hpp>
+
 #include <iostream>
 #include <string>
 
-#include "gdwg/graph.hpp"
-
 auto main() -> int {
+	// This will not compile straight away
 	auto g = gdwg::graph<std::string, int>{};
 	g.insert_node("hello");
 	g.insert_node("how");
