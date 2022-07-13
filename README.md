@@ -61,7 +61,7 @@
 </div>
 <h1 data-number="1" id="change-log"><span class="header-section-number">1</span> Change Log<a href="#change-log" class="self-link"></a></h1>
 
-- **2022-07-14**: Clarified gdwg.internal (see <a href="https://edstem.org/au/courses/8629/discussion/933929"> this post for details </a>
+- **2022-07-14**: Clarified gdwg.internal (see <a href="https://edstem.org/au/courses/8629/discussion/933929"> this post for details </a>)
 - **2022-07-11**: Initial Release
 
 <h1 data-number="2" id="the-task"><span class="header-section-number">2</span> The Task<a href="#the-task" class="self-link"></a></h1>
