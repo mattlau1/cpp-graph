@@ -61,7 +61,8 @@
 </div>
 <h1 data-number="1" id="change-log"><span class="header-section-number">1</span> Change Log<a href="#change-log" class="self-link"></a></h1>
 
-- **2022-07-11**: Fixed a typo in <code> insert_edge </code> (see <a href="https://edstem.org/au/courses/8629/discussion/935897"> this post for details</a>)
+- **2022-07-26**: Clarified <code> operator-></code> and printing empty graphs (see <a href="https://edstem.org/au/courses/8629/discussion/937184"> operator-></a> and <a href="https://edstem.org/au/courses/8629/discussion/940172?comment=2111014"> printing empty graphs</a>)
+- **2022-07-18**: Fixed a typo in <code> insert_edge </code> (see <a href="https://edstem.org/au/courses/8629/discussion/935897"> this post for details</a>)
 - **2022-07-14**: Clarified gdwg.internal (see <a href="https://edstem.org/au/courses/8629/discussion/933929"> this post for details</a>)
 - **2022-07-11**: Initial Release
 
@@ -379,6 +380,14 @@ for (const auto& [from, to, weight] : v) {
 <span id="cb32-43"><a href="#cb32-43" aria-hidden="true"></a><span class="st">)&quot;</span><span class="op">)</span>;</span>
 <span id="cb32-44"><a href="#cb32-44" aria-hidden="true"></a>CHECK<span class="op">(</span>out<span class="op">.</span>str<span class="op">()</span> <span class="op">==</span> expected_output<span class="op">)</span>;</span></code></pre></div>
 <p>—<em>end example</em> ]</p>
+<strong> Note: </strong> The empty graph should print an empty string. i.e.
+
+<code> auto g = graph<int, int>(); <br />
+auto oss = std::ostringstream{}; <br />
+oss << g; <br />
+CHECK(oss.str().empty());
+</code>
+
 <h2 data-number="2.8" id="iterator-gdwg.iterator"><span class="header-section-number">2.8</span> Iterator [gdwg.iterator]<a href="#iterator-gdwg.iterator" class="self-link"></a></h2>
 <div class="sourceCode" id="cb33"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true"></a><span class="kw">template</span><span class="op">&lt;</span>typename N, typename E<span class="op">&gt;</span></span>
 <span id="cb33-3"><a href="#cb33-3" aria-hidden="true"></a><span class="kw">class</span> graph<span class="op">&lt;</span>N, E<span class="op">&gt;::</span>iterator <span class="op">{</span></span>
@@ -394,6 +403,7 @@ for (const auto& [from, to, weight] : v) {
 <span id="cb33-11"><a href="#cb33-11" aria-hidden="true"></a></span>
 <span id="cb33-12"><a href="#cb33-12" aria-hidden="true"></a>  <span class="co">// Iterator source</span></span>
 <span id="cb33-13"><a href="#cb33-13" aria-hidden="true"></a>  <span class="kw">auto</span> <span class="kw">operator</span><span class="op">*()</span> <span class="op">-&gt;</span> reference;</span>
+<code>  // auto operator->() -> pointer not required</code>
 <span id="cb33-14"><a href="#cb33-14" aria-hidden="true"></a></span>
 <span id="cb33-15"><a href="#cb33-15" aria-hidden="true"></a>  <span class="co">// Iterator traversal</span></span>
 <span id="cb33-16"><a href="#cb33-16" aria-hidden="true"></a>  <span class="kw">auto</span> <span class="kw">operator</span><span class="op">++()</span> <span class="op">-&gt;</span> iterator<span class="op">&amp;</span>;</span>
