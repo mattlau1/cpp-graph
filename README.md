@@ -61,7 +61,8 @@
 </div>
 <h1 data-number="1" id="change-log"><span class="header-section-number">1</span> Change Log<a href="#change-log" class="self-link"></a></h1>
 
-- **2022-07-10**: Initial Release
+- **2022-07-14**: Clarified gdwg.internal (see <a href="https://edstem.org/au/courses/8629/discussion/933929"> this post for details </a>)
+- **2022-07-11**: Initial Release
 
 <h1 data-number="2" id="the-task"><span class="header-section-number">2</span> The Task<a href="#the-task" class="self-link"></a></h1>
 <p>Write a <code class="sourceCode default">graph</code> library type in C++, in <code class="sourceCode default">include/gdwg/graph.hpp</code>.</p>
@@ -491,7 +492,7 @@ for (const auto& [from, to, weight] : v) {
 <p>Your graph is <strong>required</strong> to use smart pointers (<i>however</i> you please) to solve this problem.</p>
 <ol type="1">
 <li><p>For each node, you are only allowed to have one underlying resource (heap) stored in your graph for it. This means every <code> N</code> can only be stored once per graph instance.</p></li>
-<li><p>For each edge, you should avoid not using unnecessary additional memory wherever possible.</p></li>
+<li><p>For each edge, you should avoid using unnecessary additional memory wherever possible.</p></li>
 
 <li><p>[<em>Hint</em>: In your own implementation you’re likely to use some containers to store things, and depending on your implementation choice, somewhere in those containers you’ll likely use either <code class="sourceCode default">std::unique_ptr&lt;N&gt;</code> or <code class="sourceCode default">std::shared_ptr&lt;N&gt;</code> —<em>end hint</em>]</p></li>
 </ol>
