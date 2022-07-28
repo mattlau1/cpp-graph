@@ -1,10 +1,14 @@
 #ifndef GDWG_GRAPH_HPP
 #define GDWG_GRAPH_HPP
 
+#include <algorithm>
+#include <functional>
 #include <iostream>
+#include <set>
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
+#include <vector>
 
 // This will not compile straight away
 namespace gdwg {
@@ -16,7 +20,7 @@ namespace gdwg {
 		//  src: [<dest, weight>]
 		// }
 		// src ---weight--> dest
-		using edge = std::unordered_set<std::pair<N, E>>;
+		using edge = std::vector<std::pair<N, E>>;
 		std::unordered_map<N, edge> graph_;
 
 	public:
@@ -47,10 +51,11 @@ namespace gdwg {
 		};
 
 		graph(graph const& other)
-		: graph_{std::unordered_map<N, edge>{other.graph_}} {
+		: graph_{std::unordered_map<N, edge>{}} {
 			std::copy(other.graph_.begin(), other.graph_.end(), graph_.begin());
 		};
 
+		// TODO(implement)
 		// auto operator=(graph const& other) -> graph& {
 		// 	auto copy = other;
 		// 	std::swap(copy, *this);
@@ -59,7 +64,7 @@ namespace gdwg {
 
 		auto insert_node(N const& value) -> bool {
 			// return graph_.emplace(value, edge{}).second;
-			if (!is_node(value)) {
+			if (is_node(value)) {
 				return false;
 			}
 			graph_.emplace(value, edge{});
@@ -72,8 +77,8 @@ namespace gdwg {
 				                         "or dst node does not exist");
 				return false;
 			}
-			// TODO(): check if edge was actually added.
-			graph_.at(src).emplace(make_pair(dst, weight));
+			// TODO(check if edge was actually added)
+			graph_.at(src).push_back(make_pair(dst, weight));
 			return true;
 		}
 
@@ -106,7 +111,7 @@ namespace gdwg {
 			}
 		}
 
-		// TODO(): implement
+		// TODO(implement)
 		// auto merge_replace_node(N const& old_data, N const& new_data) -> void;
 
 		auto erase_node(N const& value) -> bool {
@@ -138,7 +143,7 @@ namespace gdwg {
 			return true;
 		}
 
-		// TODO(): implement
+		// TODO(implement)
 		// auto erase_edge(iterator i) -> iterator;
 		// auto erase_edge(iterator i, iterator s) -> iterator;
 
@@ -154,6 +159,10 @@ namespace gdwg {
 			return graph_.empty();
 		}
 
+		[[nodiscard]] auto empty() const -> bool {
+			return graph_.empty();
+		}
+
 		[[nodiscard]] auto is_connected(N const& src, N const& dst) -> bool {
 			return static_cast<bool>(std::find_if(graph_.at(src).begin(),
 			                                      graph_.at(src).end(),
@@ -166,7 +175,17 @@ namespace gdwg {
 			for (auto const& kv : graph_) {
 				res.push_back(kv.first);
 			}
-			res.sort();
+			std::sort(res.begin(), res.end());
+			return res;
+		}
+
+		[[nodiscard]] auto nodes() const -> std::vector<N> {
+			auto res = std::vector<N>{};
+			res.reserve(graph_.size());
+			for (auto const& kv : graph_) {
+				res.push_back(kv.first);
+			}
+			std::sort(res.begin(), res.end());
 			return res;
 		}
 
@@ -182,11 +201,11 @@ namespace gdwg {
 					res.push_back(conn.second);
 				}
 			}
-			res.sort();
+			std::sort(res.begin(), res.end());
 			return res;
 		}
 
-		// TODO(): implement
+		// TODO(implement)
 		// [[nodiscard]] auto find(N const& src, N const& dst, E const& weight) -> iterator;
 
 		[[nodiscard]] auto connections(N const& src) -> std::vector<N> {
@@ -194,9 +213,55 @@ namespace gdwg {
 			for (auto const& conn : graph_.at(src)) {
 				res.push_back(conn.first);
 			}
-			// TODO(): sort in asc order with respect to connected nodes
+			// TODO(sort in asc order with respect to connected nodes)
 			res.sort();
 			return res;
+		}
+
+		// TODO(implement):
+		// [[nodiscard]] auto begin() const -> iterator;
+		// [[nodiscard]] auto end() const -> iterator;
+
+		// TODO(use find())
+		[[nodiscard]] auto operator==(graph const& other) -> bool {
+			auto const& this_nodes = nodes();
+			auto const& other_nodes = other.nodes();
+			if (empty() != other.empty() || this_nodes != other_nodes) {
+				return false;
+			}
+			for (auto const& node : this_nodes) {
+				auto const& this_conns = connections(node);
+				auto const& other_conns = other.connections(node);
+				if (this_conns != other_conns) {
+					return false;
+				}
+				for (auto const& conn : this_conns) {
+					if (weights(node, conn) != other.weights(node, conn)) {
+						return false;
+					}
+				}
+			}
+			return true;
+		}
+
+		friend auto operator<<(std::ostream& os, graph const& g) -> std::ostream& {
+			if (g.empty()) {
+				os << "";
+				return os;
+			}
+
+			for (auto const& src : g.nodes()) {
+				// [source_noden]
+				os << src << " ";
+				os << "(\n";
+				for (auto const& e : g.graph_.at(src)) {
+					// e.first = dst, e.second == weight
+					os << "  " << e.first << " | " << e.second << "\n";
+				}
+				os << ")\n";
+			}
+
+			return os;
 		}
 	};
 
