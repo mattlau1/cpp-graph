@@ -22,9 +22,9 @@ auto main() -> int {
 
 	std::cout << g << "\n";
 
-	// auto g2 = gdwg::graph<std::string, int>(g);
+	auto g2 = gdwg::graph<std::string, int>(g);
 
-	// std::cout << g2 << "\n";
+	std::cout << g2 << "\n";
 
 	// This is a structured binding.
 	// https://en.cppreference.com/w/cpp/language/structured_binding

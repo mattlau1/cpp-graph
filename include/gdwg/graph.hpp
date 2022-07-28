@@ -51,9 +51,7 @@ namespace gdwg {
 		};
 
 		graph(graph const& other)
-		: graph_{std::unordered_map<N, edge>{}} {
-			std::copy(other.graph_.begin(), other.graph_.end(), graph_.begin());
-		};
+		: graph_{std::unordered_map<N, edge>{other.graph_}} {};
 
 		// TODO(implement)
 		// auto operator=(graph const& other) -> graph& {
