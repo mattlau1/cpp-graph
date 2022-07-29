@@ -4,9 +4,10 @@
 #include <algorithm>
 #include <functional>
 #include <iostream>
+#include <iterator>
+#include <map>
 #include <memory>
 #include <set>
-#include <unordered_map>
 #include <unordered_set>
 #include <utility>
 #include <vector>
@@ -29,17 +30,17 @@ namespace gdwg {
 		graph() = default;
 
 		graph(std::initializer_list<N> il)
-		: graph_{std::unordered_map<N, edge_list>{}} {
+		: graph_{graph_container{}} {
 			for (auto const& i : il) {
-				graph_.emplace(i, edge_list{});
+				graph_.emplace(i, edge_set{});
 			}
 		}
 
 		template<typename InputIt>
 		graph(InputIt first, InputIt last)
-		: graph_{std::unordered_map<N, edge_list>{}} {
+		: graph_{graph_container{}} {
 			for (auto const& f = first; f != last; ++first) {
-				graph_.emplace(*f, edge_list{});
+				graph_.emplace(*f, edge_set{});
 			}
 		}
 
@@ -53,7 +54,17 @@ namespace gdwg {
 		};
 
 		graph(graph const& other)
-		: graph_{std::unordered_map<N, edge_list>{other.graph_}} {};
+		: graph_{graph_container{}} {
+			for (auto const& node : other.nodes()) {
+				insert_node(node);
+			}
+
+			for (auto const& i : other.graph_) {
+				for (auto const& edge : i.second) {
+					insert_edge(*i.first, edge->first, edge->second);
+				}
+			}
+		};
 
 		// TODO(implement)
 		// auto operator=(graph const& other) -> graph& {
@@ -63,11 +74,10 @@ namespace gdwg {
 		// };
 
 		auto insert_node(N const& value) -> bool {
-			// return graph_.emplace(value, edge{}).second;
 			if (is_node(value)) {
 				return false;
 			}
-			graph_.emplace(value, edge_list{});
+			graph_.emplace(std::make_unique<N>(value), edge_set{});
 			return true;
 		};
 
@@ -78,7 +88,27 @@ namespace gdwg {
 				return false;
 			}
 			// TODO(check if edge was actually added)
-			graph_.at(src).push_back(make_pair(dst, weight));
+			// get src node iterator
+			auto const& src_iter = get_connections(src);
+
+			// src node not found
+			if (src_iter == graph_.end()) {
+				return false;
+			}
+
+			// look for duplicate connection
+			if (std::find_if(src_iter->second.begin(),
+			                 src_iter->second.end(),
+			                 [&dst, &weight](auto const& edge) {
+				                 return edge->first == dst && edge->second == weight;
+			                 })
+			    != src_iter->second.end())
+			{
+				return false;
+			}
+
+			// graph[src] = unique_ptr(<dst, weight>)
+			src_iter->second.emplace(std::make_unique<std::pair<N, E>>(std::make_pair(src, weight)));
 			return true;
 		}
 
@@ -93,11 +123,11 @@ namespace gdwg {
 			}
 
 			for (auto const& conn : graph_) {
-				if (conn.first != old_data) {
+				if (conn.first.get() != old_data) {
 					// replace reference to old_data in conn with new_data
-					for (auto const& e : graph_.at(conn)) {
-						if (e.first == old_data) {
-							e.first = new_data;
+					for (auto const& edge : get_connections(conn)->second) {
+						if (edge->first == old_data) {
+							edge->first = new_data;
 							break;
 						}
 					}
@@ -105,7 +135,7 @@ namespace gdwg {
 				else {
 					// update key
 					auto item = graph_.extract(conn);
-					item.key() = new_data;
+					item.key() = std::make_unique(new_data);
 					graph_.insert(std::move(item));
 				}
 			}
@@ -119,12 +149,9 @@ namespace gdwg {
 				return false;
 			}
 			for (auto const& conn : graph_) {
-				for (auto const& e : conn) {
-					if (e.first == value) {
-						conn.second.erase(e);
-					}
-				}
+				std::erase_if(conn.second, [&value](auto const& edge) { return edge->first == value; });
 			}
+			graph_.erase(get_connections(value)->first);
 			return true;
 		}
 
@@ -134,12 +161,9 @@ namespace gdwg {
 				                         "they don't exist in the graph");
 				return false;
 			}
-			for (auto const& conn : graph_.at(src)) {
-				if (conn.first == dst && conn.second == weight) {
-					graph_.at(src).erase(conn);
-					break;
-				}
-			}
+			std::erase_if(get_connections(src)->second, [&dst, &weight](auto const& edge) {
+				return edge->first == dst && edge->second == weight;
+			});
 			return true;
 		}
 
@@ -152,7 +176,7 @@ namespace gdwg {
 		}
 
 		[[nodiscard]] auto is_node(N const& value) -> bool {
-			return graph_.contains(value);
+			return get_connections(value) != graph_.end();
 		}
 
 		[[nodiscard]] auto empty() -> bool {
@@ -164,8 +188,13 @@ namespace gdwg {
 		}
 
 		[[nodiscard]] auto is_connected(N const& src, N const& dst) -> bool {
-			return std::find_if(graph_.at(src).begin(), graph_.at(src).end(), [&dst](auto const& e) {
-				return e.first == dst;
+			if (!is_node(src) || !is_node(dst)) {
+				throw std::runtime_error("Cannot call gdwg::graph<N, E>::is_connected if src or dst "
+				                         "node don't exist in the graph");
+			}
+			auto const& src_edges = get_connections(src)->second;
+			return std::find_if(src_edges.begin(), src_edges.end(), [&dst](auto const& edge) {
+				return edge->first == dst;
 			});
 		}
 
@@ -173,9 +202,8 @@ namespace gdwg {
 			auto res = std::vector<N>{};
 			res.reserve(graph_.size());
 			for (auto const& kv : graph_) {
-				res.push_back(kv.first);
+				res.push_back(kv.first.get());
 			}
-			std::sort(res.begin(), res.end());
 			return res;
 		}
 
@@ -183,9 +211,8 @@ namespace gdwg {
 			auto res = std::vector<N>{};
 			res.reserve(graph_.size());
 			for (auto const& kv : graph_) {
-				res.push_back(kv.first);
+				res.push_back(*kv.first);
 			}
-			std::sort(res.begin(), res.end());
 			return res;
 		}
 
@@ -196,9 +223,9 @@ namespace gdwg {
 				return nullptr;
 			}
 			auto res = std::vector<E>{};
-			for (auto const& conn : graph_.at(src)) {
-				if (conn.first == dst) {
-					res.push_back(conn.second);
+			for (auto const& conn : get_connections(src)->second) {
+				if (conn->first == dst) {
+					res.push_back(conn->second);
 				}
 			}
 			std::sort(res.begin(), res.end());
@@ -210,8 +237,8 @@ namespace gdwg {
 
 		[[nodiscard]] auto connections(N const& src) -> std::vector<N> {
 			auto res = std::vector<N>{};
-			for (auto const& conn : graph_.at(src)) {
-				res.push_back(conn.first);
+			for (auto const& conn : get_connections(src)->second) {
+				res.push_back(conn->first);
 			}
 			// TODO(sort in asc order with respect to connected nodes)
 			res.sort();
@@ -258,9 +285,8 @@ namespace gdwg {
 			for (auto const& src : g.nodes()) {
 				os << src << " ";
 				os << "(\n";
-				for (auto const& e : g.graph_.at(src)) {
-					// e.first == dst, e.second == weight
-					os << "  " << e.first << " | " << e.second << "\n";
+				for (auto const& edge : g.get_connections(src)->second) {
+					os << "  " << edge->first << " | " << edge->second << "\n";
 				}
 				os << ")\n";
 			}
@@ -274,9 +300,25 @@ namespace gdwg {
 		//  src: [<dest, weight>]
 		// }
 		// src ---weight--> dest
-		using edge = std::pair<N, E>;
-		using edge_list = std::vector<edge>;
-		std::unordered_map<N, edge_list> graph_;
+		using edge = std::unique_ptr<std::pair<N, E>>;
+		using edge_set = std::set<edge>;
+		using node = std::unique_ptr<N>;
+		using graph_container = std::map<node, edge_set>;
+		graph_container graph_;
+
+		// returns an iterator to a <node, edge_set> pair in the graph given a source node else
+		// graph_.end() if node not in graph
+		auto get_connections(N node) -> auto {
+			return std::find_if(graph_.begin(), graph_.end(), [&node](auto const& n) {
+				return *n.first == node;
+			});
+		}
+
+		auto get_connections(N node) const -> auto {
+			return std::find_if(graph_.begin(), graph_.end(), [&node](auto const& n) {
+				return *n.first == node;
+			});
+		}
 	};
 
 	template<typename N, typename E>
@@ -293,7 +335,7 @@ namespace gdwg {
 
 		// Iterator source
 		auto operator*() -> reference {
-			return value_type{graph_iter_->first, edge_iter_->first, edge_iter_->second};
+			return value_type{*graph_iter_->first, (*edge_iter_)->first, (*edge_iter_)->second};
 		};
 
 		// auto operator->() -> pointer not required
@@ -357,8 +399,8 @@ namespace gdwg {
 		}
 
 	private:
-		using map_iter = typename std::unordered_map<N, edge_list>::const_iterator;
-		using edges_iter = typename edge_list::const_iterator;
+		using map_iter = typename graph_container::const_iterator;
+		using edges_iter = typename edge_set::const_iterator;
 		map_iter graph_iter_;
 		map_iter graph_iter_end_;
 		edges_iter edge_iter_;
