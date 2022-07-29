@@ -26,7 +26,7 @@ namespace gdwg {
 		// TODO(x): check if all functions need const, check constructor implementation and check for
 		// STL algorithm replacements. check iterator invalidation and conditions for all fns
 		// check noexcepts
-		graph() noexcept = default;
+		graph() = default;
 
 		graph(std::initializer_list<N> il)
 		: graph_{std::unordered_map<N, edge_list>{}} {
@@ -295,6 +295,7 @@ namespace gdwg {
 		auto operator*() -> reference {
 			return value_type{graph_iter_->first, edge_iter_->first, edge_iter_->second};
 		};
+
 		// auto operator->() -> pointer not required
 
 		// Iterator traversal
@@ -348,7 +349,7 @@ namespace gdwg {
 		}
 
 		// Iterator comparison
-		auto operator==(iterator const& other) -> bool {
+		auto operator==(iterator const& other) const -> bool {
 			if (graph_iter_ == graph_iter_end_ || other.graph_iter_ == other.graph_iter_end_) {
 				return graph_iter_ == other.graph_iter_;
 			}

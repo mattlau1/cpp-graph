@@ -29,7 +29,7 @@ auto main() -> int {
 	// This is a structured binding.
 	// https://en.cppreference.com/w/cpp/language/structured_binding
 	// It allows you to unpack your tuple.
-	// for (auto const& [from, to, weight] : g) {
-	// 	std::cout << from << " -> " << to << " (weight " << weight << ")\n";
-	// }
+	for (auto const& [from, to, weight] : g) {
+		std::cout << from << " -> " << to << " (weight " << weight << ")\n";
+	}
 }
