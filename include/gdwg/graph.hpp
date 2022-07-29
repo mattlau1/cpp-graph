@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <functional>
 #include <iostream>
+#include <memory>
 #include <set>
 #include <unordered_map>
 #include <unordered_set>
@@ -14,16 +15,17 @@
 namespace gdwg {
 	template<typename N, typename E>
 	class graph {
-	private:
-		// internal graph adjacency list representation
-		// {
-		//  src: [<dest, weight>]
-		// }
-		// src ---weight--> dest
-		using edge = std::vector<std::pair<N, E>>;
-		std::unordered_map<N, edge> graph_;
-
 	public:
+		class iterator;
+		struct value_type {
+			N from;
+			N to;
+			E weight;
+		};
+
+		// TODO(x): check if all functions need const, check constructor implementation and check for
+		// STL algorithm replacements. check iterator invalidation and conditions for all fns
+		// check noexcepts
 		graph() noexcept = default;
 
 		graph(std::initializer_list<N> il)
@@ -249,11 +251,10 @@ namespace gdwg {
 			}
 
 			for (auto const& src : g.nodes()) {
-				// [source_noden]
 				os << src << " ";
 				os << "(\n";
 				for (auto const& e : g.graph_.at(src)) {
-					// e.first = dst, e.second == weight
+					// e.first == dst, e.second == weight
 					os << "  " << e.first << " | " << e.second << "\n";
 				}
 				os << ")\n";
@@ -261,6 +262,49 @@ namespace gdwg {
 
 			return os;
 		}
+
+	private:
+		// internal graph adjacency list representation
+		// {
+		//  src: [<dest, weight>]
+		// }
+		// src ---weight--> dest
+		using edge = std::vector<std::pair<N, E>>;
+		std::unordered_map<N, edge> graph_;
+	};
+
+	template<typename N, typename E>
+	class graph<N, E>::iterator {
+	public:
+		using value_type = graph<N, E>::value_type;
+		using reference = value_type;
+		using pointer = void;
+		using difference_type = std::ptrdiff_t;
+		using iterator_category = std::bidirectional_iterator_tag;
+
+		// Iterator constructor
+		iterator() = default;
+
+		// Iterator source
+		auto operator*() -> reference{};
+		// auto operator->() -> pointer not required
+
+		// Iterator traversal
+		auto operator++() -> iterator&;
+		auto operator++(int) -> iterator;
+		auto operator--() -> iterator&;
+		auto operator--(int) -> iterator;
+
+		// Iterator comparison
+		auto operator==(iterator const& other) -> bool;
+
+	private:
+		using graph_map_iter = typename std::unordered_map<N, edge>::const_iterator;
+		using edge_iter = typename edge::const_iterator;
+		graph_map_iter graph_map_iter_;
+		edge_iter edge_iter_;
+		// TODO(implement)
+		// explicit iterator(unspecified);
 	};
 
 } // namespace gdwg
