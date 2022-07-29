@@ -108,7 +108,7 @@ namespace gdwg {
 			}
 
 			// graph[src] = unique_ptr(<dst, weight>)
-			src_iter->second.emplace(std::make_unique<std::pair<N, E>>(std::make_pair(src, weight)));
+			src_iter->second.emplace(std::make_unique<std::pair<N, E>>(std::make_pair(dst, weight)));
 			return true;
 		}
 
@@ -245,7 +245,6 @@ namespace gdwg {
 			return res;
 		}
 
-		// TODO(implement):
 		[[nodiscard]] auto begin() const -> iterator {
 			return iterator(graph_.begin(), graph_.end(), (graph_.begin())->second.begin());
 		}
@@ -295,15 +294,25 @@ namespace gdwg {
 		}
 
 	private:
-		// internal graph adjacency list representation
-		// {
-		//  src: [<dest, weight>]
-		// }
-		// src ---weight--> dest
+		struct graph_map_comparator {
+			auto operator()(std::unique_ptr<N> const& lhs, std::unique_ptr<N> const& rhs) const -> bool {
+				return *lhs < *rhs;
+			};
+		};
+		struct edge_set_comparator {
+			auto operator()(std::unique_ptr<std::pair<N, E>> const& lhs,
+			                std::unique_ptr<std::pair<N, E>> const& rhs) const -> bool {
+				if ((*lhs).first != (*rhs).first) {
+					return (*lhs).first < (*rhs).first;
+				}
+				return (*lhs).second < (*rhs).second;
+			}
+		};
+
 		using edge = std::unique_ptr<std::pair<N, E>>;
-		using edge_set = std::set<edge>;
+		using edge_set = std::set<edge, edge_set_comparator>;
 		using node = std::unique_ptr<N>;
-		using graph_container = std::map<node, edge_set>;
+		using graph_container = std::map<node, edge_set, graph_map_comparator>;
 		graph_container graph_;
 
 		// returns an iterator to a <node, edge_set> pair in the graph given a source node else
