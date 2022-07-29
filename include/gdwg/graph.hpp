@@ -29,17 +29,17 @@ namespace gdwg {
 		graph() noexcept = default;
 
 		graph(std::initializer_list<N> il)
-		: graph_{std::unordered_map<N, edge>{}} {
+		: graph_{std::unordered_map<N, edge_list>{}} {
 			for (auto const& i : il) {
-				graph_.emplace(i, edge{});
+				graph_.emplace(i, edge_list{});
 			}
 		}
 
 		template<typename InputIt>
 		graph(InputIt first, InputIt last)
-		: graph_{std::unordered_map<N, edge>{}} {
+		: graph_{std::unordered_map<N, edge_list>{}} {
 			for (auto const& f = first; f != last; ++first) {
-				graph_.emplace(*f, edge{});
+				graph_.emplace(*f, edge_list{});
 			}
 		}
 
@@ -53,7 +53,7 @@ namespace gdwg {
 		};
 
 		graph(graph const& other)
-		: graph_{std::unordered_map<N, edge>{other.graph_}} {};
+		: graph_{std::unordered_map<N, edge_list>{other.graph_}} {};
 
 		// TODO(implement)
 		// auto operator=(graph const& other) -> graph& {
@@ -67,7 +67,7 @@ namespace gdwg {
 			if (is_node(value)) {
 				return false;
 			}
-			graph_.emplace(value, edge{});
+			graph_.emplace(value, edge_list{});
 			return true;
 		};
 
@@ -164,9 +164,9 @@ namespace gdwg {
 		}
 
 		[[nodiscard]] auto is_connected(N const& src, N const& dst) -> bool {
-			return static_cast<bool>(std::find_if(graph_.at(src).begin(),
-			                                      graph_.at(src).end(),
-			                                      [&dst](auto const& e) { return e.first == dst; }));
+			return std::find_if(graph_.at(src).begin(), graph_.at(src).end(), [&dst](auto const& e) {
+				return e.first == dst;
+			});
 		}
 
 		[[nodiscard]] auto nodes() -> std::vector<N> {
@@ -219,8 +219,13 @@ namespace gdwg {
 		}
 
 		// TODO(implement):
-		// [[nodiscard]] auto begin() const -> iterator;
-		// [[nodiscard]] auto end() const -> iterator;
+		[[nodiscard]] auto begin() const -> iterator {
+			return iterator(graph_.begin(), graph_.end(), (graph_.begin())->second.begin());
+		}
+
+		[[nodiscard]] auto end() const -> iterator {
+			return iterator(graph_.end(), graph_.end(), {});
+		}
 
 		// TODO(use find())
 		[[nodiscard]] auto operator==(graph const& other) -> bool {
@@ -269,8 +274,9 @@ namespace gdwg {
 		//  src: [<dest, weight>]
 		// }
 		// src ---weight--> dest
-		using edge = std::vector<std::pair<N, E>>;
-		std::unordered_map<N, edge> graph_;
+		using edge = std::pair<N, E>;
+		using edge_list = std::vector<edge>;
+		std::unordered_map<N, edge_list> graph_;
 	};
 
 	template<typename N, typename E>
@@ -286,25 +292,82 @@ namespace gdwg {
 		iterator() = default;
 
 		// Iterator source
-		auto operator*() -> reference{};
+		auto operator*() -> reference {
+			return value_type{graph_iter_->first, edge_iter_->first, edge_iter_->second};
+		};
 		// auto operator->() -> pointer not required
 
 		// Iterator traversal
-		auto operator++() -> iterator&;
-		auto operator++(int) -> iterator;
-		auto operator--() -> iterator&;
-		auto operator--(int) -> iterator;
+		auto operator++() -> iterator& {
+			if (edge_iter_ != graph_iter_->second.end()) {
+				++edge_iter_;
+			}
+
+			if (edge_iter_ == graph_iter_->second.end()) {
+				++graph_iter_;
+				if (graph_iter_ != graph_iter_end_) {
+					while (graph_iter_ != graph_iter_end_ && graph_iter_->second.empty()) {
+						++graph_iter_;
+					}
+					if (graph_iter_ != graph_iter_end_) {
+						edge_iter_ = graph_iter_->second.begin();
+					}
+				}
+			}
+			return *this;
+		}
+
+		auto operator++(int) -> iterator {
+			auto copy{*this};
+			++(*this);
+			return copy;
+		}
+
+		auto operator--() -> iterator& {
+			while (graph_iter_ == graph_iter_end_ || graph_iter_->second.empty()) {
+				--graph_iter_;
+				edge_iter_ = graph_iter_->second.end();
+			}
+
+			if (edge_iter_ == graph_iter_->second.begin()) {
+				--graph_iter_;
+				while (graph_iter_ == graph_iter_end_ || graph_iter_->second.empty()) {
+					--graph_iter_;
+				}
+				edge_iter_ = graph_iter_->second.end();
+			}
+
+			--edge_iter_;
+			return *this;
+		}
+
+		auto operator--(int) -> iterator {
+			auto copy{*this};
+			--(*this);
+			return copy;
+		}
 
 		// Iterator comparison
-		auto operator==(iterator const& other) -> bool;
+		auto operator==(iterator const& other) -> bool {
+			if (graph_iter_ == graph_iter_end_ || other.graph_iter_ == other.graph_iter_end_) {
+				return graph_iter_ == other.graph_iter_;
+			}
+			return graph_iter_ == other.graph_iter_ && edge_iter_ == other.edge_iter_;
+		}
 
 	private:
-		using graph_map_iter = typename std::unordered_map<N, edge>::const_iterator;
-		using edge_iter = typename edge::const_iterator;
-		graph_map_iter graph_map_iter_;
-		edge_iter edge_iter_;
-		// TODO(implement)
-		// explicit iterator(unspecified);
+		using map_iter = typename std::unordered_map<N, edge_list>::const_iterator;
+		using edges_iter = typename edge_list::const_iterator;
+		map_iter graph_iter_;
+		map_iter graph_iter_end_;
+		edges_iter edge_iter_;
+
+		explicit iterator(map_iter graph_iter_begin, map_iter graph_iter_end, edges_iter edge_iter)
+		: graph_iter_{graph_iter_begin}
+		, graph_iter_end_{graph_iter_end}
+		, edge_iter_{edge_iter} {};
+
+		friend class graph;
 	};
 
 } // namespace gdwg
