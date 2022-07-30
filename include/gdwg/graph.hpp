@@ -238,10 +238,7 @@ namespace gdwg {
 				                         "node don't exist in the graph");
 			}
 			auto const& src_edges = graph_.find(src)->second;
-			return std::find_if(src_edges.begin(),
-			                    src_edges.end(),
-			                    [&dst](auto const& edge) { return edge->first == dst; })
-			       != src_edges.end();
+			return src_edges.find(dst) != src_edges.end();
 		}
 
 		// Returns: A sequence of all stored nodes, sorted in ascending order.
@@ -414,6 +411,12 @@ namespace gdwg {
 					return lhs.first < rhs->first;
 				}
 				return lhs.second < rhs->second;
+			}
+			auto operator()(N lhs, const edge& rhs) const -> bool {
+				return lhs < rhs->first;
+			}
+			auto operator()(const edge& lhs, N rhs) const -> bool {
+				return lhs->first < rhs;
 			}
 		};
 
