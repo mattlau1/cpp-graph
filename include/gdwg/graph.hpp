@@ -142,8 +142,33 @@ namespace gdwg {
 			}
 		}
 
-		// TODO(implement)
-		// auto merge_replace_node(N const& old_data, N const& new_data) -> void;
+		auto merge_replace_node(N const& old_data, N const& new_data) -> void {
+			if (!is_node(old_data) || !is_node(new_data)) {
+				throw std::runtime_error("Cannot call gdwg::graph<N, E>::merge_replace_node on old or "
+				                         "new data if they don't exist in the graph");
+			}
+
+			for (auto const& conn : graph_) {
+				if (conn->first == old_data) {
+					for (auto const& edge : conn.second) {
+						if (edge->first != old_data) {
+							insert_edge(new_data, edge->first, edge->weight);
+						}
+						else {
+							insert_edge(new_data, new_data, edge->weight);
+						}
+					}
+				}
+				else {
+					for (auto const& edge : conn.second) {
+						if (edge->first == old_data) {
+							insert_edge(conn->first, new_data, edge->weight);
+						}
+					}
+				}
+			}
+			erase_node(old_data);
+		}
 
 		auto erase_node(N const& value) -> bool {
 			if (is_node(value)) {
@@ -231,8 +256,18 @@ namespace gdwg {
 			return res;
 		}
 
-		// TODO(implement)
-		// [[nodiscard]] auto find(N const& src, N const& dst, E const& weight) -> iterator;
+		[[nodiscard]] auto find(N const& src, N const& dst, E const& weight) -> iterator {
+			auto it = begin();
+			auto const& it_end = end();
+			while (it != it_end) {
+				auto const& [curr_src, curr_dst, curr_weight] = *it;
+				if (curr_src == src && curr_dst == dst && curr_weight == weight) {
+					return it;
+				}
+				++it;
+			}
+			return it;
+		};
 
 		[[nodiscard]] auto connections(N const& src) -> std::vector<N> {
 			auto res = std::vector<N>{};
