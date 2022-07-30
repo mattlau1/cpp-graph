@@ -36,13 +36,13 @@ namespace gdwg {
 
 		graph(std::initializer_list<N> il)
 		: graph_{graph_container{}} {
-			std::for_each(il.begin(), il.end(), [this](auto const& i) { insert_edge(i); });
+			std::for_each(il.begin(), il.end(), [this](auto const& i) { insert_node(i); });
 		}
 
 		template<typename InputIt>
 		graph(InputIt first, InputIt last)
 		: graph_{graph_container{}} {
-			std::for_each(first, last, [this](auto const& i) { insert_edge(i); });
+			std::for_each(first, last, [this](auto const& i) { insert_node(i); });
 		}
 
 		graph(graph&& other) noexcept
@@ -69,7 +69,7 @@ namespace gdwg {
 		};
 
 		auto operator=(graph const& other) -> graph& {
-			if (this != other) {
+			if (this != &other) {
 				auto copy = other;
 				std::swap(copy, *this);
 			}
@@ -107,13 +107,7 @@ namespace gdwg {
 			}
 
 			// look for duplicate connection
-			if (std::find_if(src_iter->second.begin(),
-			                 src_iter->second.end(),
-			                 [&dst, &weight](auto const& edge) {
-				                 return edge->first == dst && edge->second == weight;
-			                 })
-			    != src_iter->second.end())
-			{
+			if (src_iter->second.find(make_pair(dst, weight)) != src_iter->second.end()) {
 				return false;
 			}
 
@@ -210,9 +204,11 @@ namespace gdwg {
 		}
 
 		// Erases the edge pointed to by i.
+		// Complexity: Amortised constant time.
 		auto erase_edge(iterator i) -> iterator;
 
 		// Erases all edges between the iterators [i, s).
+		// Complexity O(d), where d=std::distance(i, s).
 		auto erase_edge(iterator i, iterator s) -> iterator;
 
 		// Erases all nodes from the graph.
@@ -225,6 +221,7 @@ namespace gdwg {
 		// --------------------------------------------
 
 		// Returns: true if a node equivalent to value exists in the graph, and false otherwise.
+		// Complexity: O(log (n)) time.
 		[[nodiscard]] auto is_node(N const& value) const -> bool {
 			return graph_.find(value) != graph_.end();
 		}
@@ -241,12 +238,14 @@ namespace gdwg {
 				                         "node don't exist in the graph");
 			}
 			auto const& src_edges = graph_.find(src)->second;
-			return std::find_if(src_edges.begin(), src_edges.end(), [&dst](auto const& edge) {
-				return edge->first == dst;
-			});
+			return std::find_if(src_edges.begin(),
+			                    src_edges.end(),
+			                    [&dst](auto const& edge) { return edge->first == dst; })
+			       != src_edges.end();
 		}
 
 		// Returns: A sequence of all stored nodes, sorted in ascending order.
+		// Complexity: O(n), where n is the number of stored nodes.
 		[[nodiscard]] auto nodes() const -> std::vector<N> {
 			auto res = std::vector<N>{};
 			res.reserve(graph_.size());
@@ -257,6 +256,8 @@ namespace gdwg {
 		}
 
 		// Returns: A sequence of weights from src to dst, sorted in ascending order.
+		// Complexity: O(log (n) + e), where n is the number of stored nodes and e is the number of
+		// stored edges.
 		[[nodiscard]] auto weights(N const& src, N const& dst) const -> std::vector<E> {
 			if (!is_node(src) || !is_node(dst)) {
 				throw std::runtime_error("Cannot call gdwg::graph<N, E>::weights if src or dst node "
@@ -273,21 +274,26 @@ namespace gdwg {
 
 		// Returns: An iterator pointing to an edge equivalent to value_type{src, dst, weight}, or
 		// end() if no such edge exists.
+		// Complexity: O(log (n) + log (e)), where n is the number of stored nodes and e is the number
+		// of stored edges.
 		[[nodiscard]] auto find(N const& src, N const& dst, E const& weight) const -> iterator {
-			auto it = begin();
-			auto const& it_end = end();
-			for (; it != it_end; ++it) {
-				auto const& [curr_src, curr_dst, curr_weight] = *it;
-				if (curr_src == src && curr_dst == dst && curr_weight == weight) {
-					return it;
-				}
+			// log(n)
+			auto const& graph_iter = graph_.find(src);
+			if (graph_iter == graph_.end()) {
+				return end();
 			}
 
-			return it;
+			// log(e)
+			auto edge_iter = graph_iter->second.find(make_pair(dst, weight));
+			if (edge_iter == graph_iter->second.end()) {
+				return end();
+			}
+			return iterator(graph_iter, graph_.end(), edge_iter);
 		};
 
 		// Returns: A sequence of nodes (found from any immediate outgoing edge) connected to src,
 		// sorted in ascending order, with respect to the connected nodes.
+		// Complexity: O(log (n) + e), where e is the number of outgoing edges associated with src.
 		[[nodiscard]] auto connections(N const& src) const -> std::vector<N> {
 			auto res = std::set<N>{};
 			for (auto const& conn : graph_.find(src)->second) {
@@ -316,19 +322,29 @@ namespace gdwg {
 
 		// Returns: true if *this and other contain exactly the same nodes and edges, and false
 		// otherwise.
+		// Complexity: O(n + e) where n is the sum of stored nodes in *this and other, and e is the
+		// sum of stored edges in *this and other.
+		// TODO(fix complexity)
 		[[nodiscard]] auto operator==(graph const& other) const -> bool {
+			// O(n)
 			auto const& this_nodes = nodes();
 			auto const& other_nodes = other.nodes();
+
 			if (empty() != other.empty() || this_nodes != other_nodes) {
 				return false;
 			}
+
+			// O(n)
 			for (auto const& node : this_nodes) {
+				// O(log(n) + e) => O(n + e)
 				auto const& this_conns = connections(node);
 				auto const& other_conns = other.connections(node);
 				if (this_conns != other_conns) {
 					return false;
 				}
+				// O(e)
 				for (auto const& conn : this_conns) {
+					// O(n + e)
 					if (weights(node, conn) != other.weights(node, conn)) {
 						return false;
 					}
@@ -374,17 +390,30 @@ namespace gdwg {
 				return *lhs < rhs;
 			}
 
-			auto operator()(N const& a, node const& b) const noexcept -> bool {
-				return a < *b;
+			auto operator()(N const& lhs, node const& rhs) const noexcept -> bool {
+				return lhs < *rhs;
 			}
 		};
 
 		struct edge_set_comparator {
+			using is_transparent = void;
 			auto operator()(edge const& lhs, edge const& rhs) const -> bool {
 				if (lhs->first != rhs->first) {
 					return lhs->first < rhs->first;
 				}
 				return lhs->second < rhs->second;
+			}
+			auto operator()(const edge& lhs, const std::pair<N, E>& rhs) const -> bool {
+				if (lhs->first != rhs.first) {
+					return lhs->first < rhs.first;
+				}
+				return lhs->second < rhs.second;
+			}
+			auto operator()(const std::pair<N, E>& lhs, const edge& rhs) const -> bool {
+				if (lhs.first != rhs->first) {
+					return lhs.first < rhs->first;
+				}
+				return lhs.second < rhs->second;
 			}
 		};
 
@@ -520,8 +549,15 @@ namespace gdwg {
 	auto graph<N, E>::erase_edge(iterator i) -> iterator {
 		auto next = i;
 		++next;
-		auto const& [to, from, weight] = *i;
-		erase_edge(to, from, weight);
+		auto const& graph_iter = i.graph_iter_;
+		auto const& edge_iter = i.edge_iter_;
+		auto const& src_node = (**edge_iter).first;
+		auto& edge_set = (graph_.find(src_node))->second;
+		edge_set.erase(edge_iter);
+
+		if (edge_set.empty()) {
+			graph_.erase(graph_iter);
+		}
 		return next;
 	};
 
