@@ -31,39 +31,41 @@ namespace gdwg {
 
 		graph(std::initializer_list<N> il)
 		: graph_{graph_container{}} {
-			for (auto const& i : il) {
-				graph_.emplace(i, edge_set{});
-			}
+			std::for_each(il.begin(), il.end(), [this](auto const& i) { graph_.emplace(i, edge_set{}); });
 		}
 
 		template<typename InputIt>
 		graph(InputIt first, InputIt last)
 		: graph_{graph_container{}} {
-			for (auto const& f = first; f != last; ++first) {
-				graph_.emplace(*f, edge_set{});
-			}
+			std::for_each(first, last, [this](auto const& it) { graph_.emplace(*it, edge_set{}); });
 		}
 
 		graph(graph&& other) noexcept
-		: graph_{std::exchange(other.graph_, nullptr)} {};
+		: graph_{std::exchange(other.graph_, graph_container{})} {};
 
 		auto operator=(graph&& other) noexcept -> graph& {
 			std::swap(graph_, other.graph_);
-			other.graph_ = nullptr;
+			other.graph_ = graph_container{};
 			return *this;
 		};
 
 		graph(graph const& other)
 		: graph_{graph_container{}} {
-			for (auto const& node : other.nodes()) {
+			auto const& other_nodes = other.nodes();
+			std::for_each(other_nodes.begin(), other_nodes.end(), [this](auto const& node) {
 				insert_node(node);
-			}
+			});
 
-			for (auto const& i : other.graph_) {
-				for (auto const& edge : i.second) {
-					insert_edge(*i.first, edge->first, edge->second);
-				}
-			}
+			// for (auto const& conn : other.graph_) {
+			// 	for (auto const& edge : conn.second) {
+			// 		insert_edge(*conn.first, edge->first, edge->second);
+			// 	}
+			// }
+			std::for_each(other.graph_.begin(), other.graph_.end(), [this](auto const& conn) {
+				std::for_each(conn.second.begin(), conn.second.end(), [this, &conn](auto const& edge) {
+					insert_edge(*conn.first, edge->first, edge->second);
+				});
+			});
 		};
 
 		auto operator=(graph const& other) -> graph& {
@@ -86,7 +88,6 @@ namespace gdwg {
 			if (!is_node(src) || !is_node(dst)) {
 				throw std::runtime_error("Cannot call gdwg::graph<N, E>::insert_edge when either src "
 				                         "or dst node does not exist");
-				return false;
 			}
 			// TODO(check if edge was actually added)
 			// get src node iterator
@@ -117,7 +118,6 @@ namespace gdwg {
 			if (!is_node(old_data)) {
 				throw std::runtime_error("Cannot call gdwg::graph<N, E>::replace_node on a node that "
 				                         "doesn't exist");
-				return false;
 			}
 			if (!is_node(new_data)) {
 				return false;
@@ -185,7 +185,6 @@ namespace gdwg {
 			if (!is_node(src) || !is_node(dst)) {
 				throw std::runtime_error("Cannot call gdwg::graph<N, E>::erase_edge on src or dst if "
 				                         "they don't exist in the graph");
-				return false;
 			}
 			std::erase_if(get_connections(src)->second, [&dst, &weight](auto const& edge) {
 				return edge->first == dst && edge->second == weight;
@@ -226,8 +225,8 @@ namespace gdwg {
 		[[nodiscard]] auto nodes() -> std::vector<N> {
 			auto res = std::vector<N>{};
 			res.reserve(graph_.size());
-			for (auto const& kv : graph_) {
-				res.push_back(kv.first.get());
+			for (auto const& conn : graph_) {
+				res.push_back(*conn.first);
 			}
 			return res;
 		}
@@ -235,8 +234,8 @@ namespace gdwg {
 		[[nodiscard]] auto nodes() const -> std::vector<N> {
 			auto res = std::vector<N>{};
 			res.reserve(graph_.size());
-			for (auto const& kv : graph_) {
-				res.push_back(*kv.first);
+			for (auto const& conn : graph_) {
+				res.push_back(*conn.first);
 			}
 			return res;
 		}
@@ -245,7 +244,6 @@ namespace gdwg {
 			if (!is_node(src) || !is_node(dst)) {
 				throw std::runtime_error("Cannot call gdwg::graph<N, E>::weights if src or dst node "
 				                         "don't exist in the graph");
-				return nullptr;
 			}
 			auto res = std::vector<E>{};
 			for (auto const& conn : get_connections(src)->second) {
@@ -259,13 +257,13 @@ namespace gdwg {
 		[[nodiscard]] auto find(N const& src, N const& dst, E const& weight) -> iterator {
 			auto it = begin();
 			auto const& it_end = end();
-			while (it != it_end) {
+			for (; it != it_end; ++it) {
 				auto const& [curr_src, curr_dst, curr_weight] = *it;
 				if (curr_src == src && curr_dst == dst && curr_weight == weight) {
 					return it;
 				}
-				++it;
 			}
+
 			return it;
 		};
 
@@ -390,8 +388,7 @@ namespace gdwg {
 			if (edge_iter_ == graph_iter_->second.end()) {
 				++graph_iter_;
 				if (graph_iter_ != graph_iter_end_) {
-					while (graph_iter_ != graph_iter_end_ && graph_iter_->second.empty()) {
-						++graph_iter_;
+					for (; graph_iter_ != graph_iter_end_ && graph_iter_->second.empty(); ++graph_iter_) {
 					}
 					if (graph_iter_ != graph_iter_end_) {
 						edge_iter_ = graph_iter_->second.begin();
@@ -415,8 +412,7 @@ namespace gdwg {
 
 			if (edge_iter_ == graph_iter_->second.begin()) {
 				--graph_iter_;
-				while (graph_iter_ == graph_iter_end_ || graph_iter_->second.empty()) {
-					--graph_iter_;
+				for (; graph_iter_ == graph_iter_end_ || graph_iter_->second.empty(); --graph_iter_) {
 				}
 				edge_iter_ = graph_iter_->second.end();
 			}
@@ -451,8 +447,7 @@ namespace gdwg {
 		, graph_iter_end_{graph_iter_end}
 		, edge_iter_{edge_iter} {
 			if (graph_iter_begin != graph_iter_end) {
-				while (graph_iter_ != graph_iter_end_ && graph_iter_->second.empty()) {
-					++graph_iter_;
+				for (; graph_iter_ != graph_iter_end_ && graph_iter_->second.empty(); ++graph_iter_) {
 				}
 				if (graph_iter_ != graph_iter_end_) {
 					edge_iter_ = graph_iter_->second.begin();
@@ -474,9 +469,8 @@ namespace gdwg {
 
 	template<typename N, typename E>
 	auto graph<N, E>::erase_edge(iterator i, iterator s) -> iterator {
-		while (i != s) {
-			i = erase_edge(i);
-		}
+		for (; i != s; i = erase_edge(i)) {
+		};
 		return i;
 	}
 
