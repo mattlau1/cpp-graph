@@ -99,7 +99,7 @@ namespace gdwg {
 			}
 			// TODO(check if edge was actually added)
 			// get src node iterator
-			auto const& src_iter = get_connections(src);
+			auto const& src_iter = graph_.find(src);
 
 			// src node not found
 			if (src_iter == graph_.end()) {
@@ -136,7 +136,7 @@ namespace gdwg {
 			for (auto const& conn : graph_) {
 				if (conn->first != old_data) {
 					// replace reference to old_data in conn with new_data
-					for (auto const& edge : get_connections(conn)->second) {
+					for (auto const& edge : graph_.find(conn)->second) {
 						if (edge->first == old_data) {
 							edge->first = new_data;
 							break;
@@ -191,17 +191,19 @@ namespace gdwg {
 			for (auto const& conn : graph_) {
 				std::erase_if(conn.second, [&value](auto const& edge) { return edge->first == value; });
 			}
-			graph_.erase(get_connections(value)->first);
+			graph_.erase(graph_.find(value)->first);
 			return true;
 		}
 
 		// Erases an edge representing src → dst with weight weight.
+		// Complexity: O(log (n) + e), where n is the total number of stored nodes and e is the total
+		// number of stored edges.
 		auto erase_edge(N const& src, N const& dst, E const& weight) -> bool {
 			if (!is_node(src) || !is_node(dst)) {
 				throw std::runtime_error("Cannot call gdwg::graph<N, E>::erase_edge on src or dst if "
 				                         "they don't exist in the graph");
 			}
-			std::erase_if(get_connections(src)->second, [&dst, &weight](auto const& edge) {
+			std::erase_if(graph_.find(src)->second, [&dst, &weight](auto const& edge) {
 				return edge->first == dst && edge->second == weight;
 			});
 			return true;
@@ -224,7 +226,7 @@ namespace gdwg {
 
 		// Returns: true if a node equivalent to value exists in the graph, and false otherwise.
 		[[nodiscard]] auto is_node(N const& value) const -> bool {
-			return get_connections(value) != graph_.end();
+			return graph_.find(value) != graph_.end();
 		}
 
 		// Returns: true if there are no nodes in the graph, and false otherwise.
@@ -238,7 +240,7 @@ namespace gdwg {
 				throw std::runtime_error("Cannot call gdwg::graph<N, E>::is_connected if src or dst "
 				                         "node don't exist in the graph");
 			}
-			auto const& src_edges = get_connections(src)->second;
+			auto const& src_edges = graph_.find(src)->second;
 			return std::find_if(src_edges.begin(), src_edges.end(), [&dst](auto const& edge) {
 				return edge->first == dst;
 			});
@@ -261,7 +263,7 @@ namespace gdwg {
 				                         "don't exist in the graph");
 			}
 			auto res = std::vector<E>{};
-			for (auto const& conn : get_connections(src)->second) {
+			for (auto const& conn : graph_.find(src)->second) {
 				if (conn->first == dst) {
 					res.push_back(conn->second);
 				}
@@ -287,11 +289,11 @@ namespace gdwg {
 		// Returns: A sequence of nodes (found from any immediate outgoing edge) connected to src,
 		// sorted in ascending order, with respect to the connected nodes.
 		[[nodiscard]] auto connections(N const& src) const -> std::vector<N> {
-			auto res = std::vector<N>{};
-			for (auto const& conn : get_connections(src)->second) {
-				res.push_back(conn->first);
+			auto res = std::set<N>{};
+			for (auto const& conn : graph_.find(src)->second) {
+				res.emplace(conn->first);
 			}
-			return res;
+			return std::vector<N>(res.begin(), res.end());
 		}
 
 		// --------------------------------------------
@@ -349,7 +351,7 @@ namespace gdwg {
 			for (auto const& src : g.nodes()) {
 				os << src << " ";
 				os << "(\n";
-				for (auto const& edge : g.get_connections(src)->second) {
+				for (auto const& edge : g.graph_.find(src)->second) {
 					os << "  " << edge->first << " | " << edge->second << "\n";
 				}
 				os << ")\n";
@@ -363,9 +365,18 @@ namespace gdwg {
 		using edge = std::unique_ptr<std::pair<N, E>>;
 
 		struct graph_map_comparator {
+			using is_transparent = void;
 			auto operator()(node const& lhs, node const& rhs) const -> bool {
 				return *lhs < *rhs;
-			};
+			}
+
+			auto operator()(node const& lhs, N const& rhs) const noexcept -> bool {
+				return *lhs < rhs;
+			}
+
+			auto operator()(N const& a, node const& b) const noexcept -> bool {
+				return a < *b;
+			}
 		};
 
 		struct edge_set_comparator {
@@ -380,22 +391,6 @@ namespace gdwg {
 		using edge_set = std::set<edge, edge_set_comparator>;
 		using graph_container = std::map<node, edge_set, graph_map_comparator>;
 		graph_container graph_;
-
-		// returns an iterator to a graph connection given a source node else
-		// graph_.end() if node not in graph
-		auto get_connections(N node) -> typename graph_container::iterator {
-			return std::find_if(graph_.begin(), graph_.end(), [&node](auto const& n) {
-				return *n.first == node;
-			});
-		}
-
-		// returns a const iterator to a graph connection given a source node else
-		// graph_.end() if node not in graph
-		auto get_connections(N node) const -> typename graph_container::const_iterator {
-			return std::find_if(graph_.begin(), graph_.end(), [&node](auto const& n) {
-				return *n.first == node;
-			});
-		}
 	};
 
 	template<typename N, typename E>
