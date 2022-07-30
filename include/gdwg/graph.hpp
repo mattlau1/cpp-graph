@@ -199,19 +199,15 @@ namespace gdwg {
 			graph_.clear();
 		}
 
-		[[nodiscard]] auto is_node(N const& value) -> bool {
+		[[nodiscard]] auto is_node(N const& value) const -> bool {
 			return get_connections(value) != graph_.end();
-		}
-
-		[[nodiscard]] auto empty() -> bool {
-			return graph_.empty();
 		}
 
 		[[nodiscard]] auto empty() const -> bool {
 			return graph_.empty();
 		}
 
-		[[nodiscard]] auto is_connected(N const& src, N const& dst) -> bool {
+		[[nodiscard]] auto is_connected(N const& src, N const& dst) const -> bool {
 			if (!is_node(src) || !is_node(dst)) {
 				throw std::runtime_error("Cannot call gdwg::graph<N, E>::is_connected if src or dst "
 				                         "node don't exist in the graph");
@@ -220,15 +216,6 @@ namespace gdwg {
 			return std::find_if(src_edges.begin(), src_edges.end(), [&dst](auto const& edge) {
 				return edge->first == dst;
 			});
-		}
-
-		[[nodiscard]] auto nodes() -> std::vector<N> {
-			auto res = std::vector<N>{};
-			res.reserve(graph_.size());
-			for (auto const& conn : graph_) {
-				res.push_back(*conn.first);
-			}
-			return res;
 		}
 
 		[[nodiscard]] auto nodes() const -> std::vector<N> {
@@ -240,7 +227,7 @@ namespace gdwg {
 			return res;
 		}
 
-		[[nodiscard]] auto weights(N const& src, N const& dst) -> std::vector<E> {
+		[[nodiscard]] auto weights(N const& src, N const& dst) const -> std::vector<E> {
 			if (!is_node(src) || !is_node(dst)) {
 				throw std::runtime_error("Cannot call gdwg::graph<N, E>::weights if src or dst node "
 				                         "don't exist in the graph");
@@ -254,7 +241,7 @@ namespace gdwg {
 			return res;
 		}
 
-		[[nodiscard]] auto find(N const& src, N const& dst, E const& weight) -> iterator {
+		[[nodiscard]] auto find(N const& src, N const& dst, E const& weight) const -> iterator {
 			auto it = begin();
 			auto const& it_end = end();
 			for (; it != it_end; ++it) {
@@ -267,7 +254,7 @@ namespace gdwg {
 			return it;
 		};
 
-		[[nodiscard]] auto connections(N const& src) -> std::vector<N> {
+		[[nodiscard]] auto connections(N const& src) const -> std::vector<N> {
 			auto res = std::vector<N>{};
 			for (auto const& conn : get_connections(src)->second) {
 				res.push_back(conn->first);
@@ -284,7 +271,7 @@ namespace gdwg {
 		}
 
 		// TODO(use find())
-		[[nodiscard]] auto operator==(graph const& other) -> bool {
+		[[nodiscard]] auto operator==(graph const& other) const -> bool {
 			auto const& this_nodes = nodes();
 			auto const& other_nodes = other.nodes();
 			if (empty() != other.empty() || this_nodes != other_nodes) {
@@ -324,14 +311,17 @@ namespace gdwg {
 		}
 
 	private:
+		using node = std::unique_ptr<N>;
+		using edge = std::unique_ptr<std::pair<N, E>>;
+
 		struct graph_map_comparator {
-			auto operator()(std::unique_ptr<N> const& lhs, std::unique_ptr<N> const& rhs) const -> bool {
+			auto operator()(node const& lhs, node const& rhs) const -> bool {
 				return *lhs < *rhs;
 			};
 		};
+
 		struct edge_set_comparator {
-			auto operator()(std::unique_ptr<std::pair<N, E>> const& lhs,
-			                std::unique_ptr<std::pair<N, E>> const& rhs) const -> bool {
+			auto operator()(edge const& lhs, edge const& rhs) const -> bool {
 				if (lhs->first != rhs->first) {
 					return lhs->first < rhs->first;
 				}
@@ -339,9 +329,7 @@ namespace gdwg {
 			}
 		};
 
-		using edge = std::unique_ptr<std::pair<N, E>>;
 		using edge_set = std::set<edge, edge_set_comparator>;
-		using node = std::unique_ptr<N>;
 		using graph_container = std::map<node, edge_set, graph_map_comparator>;
 		graph_container graph_;
 
@@ -373,7 +361,7 @@ namespace gdwg {
 		iterator() = default;
 
 		// Iterator source
-		auto operator*() -> reference {
+		auto operator*() const -> reference {
 			return value_type{*graph_iter_->first, (*edge_iter_)->first, (*edge_iter_)->second};
 		};
 
