@@ -66,12 +66,13 @@ namespace gdwg {
 			}
 		};
 
-		// TODO(implement)
-		// auto operator=(graph const& other) -> graph& {
-		// 	auto copy = other;
-		// 	std::swap(copy, *this);
-		// 	return *this;
-		// };
+		auto operator=(graph const& other) -> graph& {
+			if (this != other) {
+				auto copy = other;
+				std::swap(copy, *this);
+			}
+			return *this;
+		};
 
 		auto insert_node(N const& value) -> bool {
 			if (is_node(value)) {
@@ -167,9 +168,8 @@ namespace gdwg {
 			return true;
 		}
 
-		// TODO(implement)
-		// auto erase_edge(iterator i) -> iterator;
-		// auto erase_edge(iterator i, iterator s) -> iterator;
+		auto erase_edge(iterator i) -> iterator;
+		auto erase_edge(iterator i, iterator s) -> iterator;
 
 		auto clear() noexcept -> void {
 			graph_.clear();
@@ -228,7 +228,6 @@ namespace gdwg {
 					res.push_back(conn->second);
 				}
 			}
-			std::sort(res.begin(), res.end());
 			return res;
 		}
 
@@ -240,8 +239,6 @@ namespace gdwg {
 			for (auto const& conn : get_connections(src)->second) {
 				res.push_back(conn->first);
 			}
-			// TODO(sort in asc order with respect to connected nodes)
-			res.sort();
 			return res;
 		}
 
@@ -302,10 +299,10 @@ namespace gdwg {
 		struct edge_set_comparator {
 			auto operator()(std::unique_ptr<std::pair<N, E>> const& lhs,
 			                std::unique_ptr<std::pair<N, E>> const& rhs) const -> bool {
-				if ((*lhs).first != (*rhs).first) {
-					return (*lhs).first < (*rhs).first;
+				if (lhs->first != rhs->first) {
+					return lhs->first < rhs->first;
 				}
-				return (*lhs).second < (*rhs).second;
+				return lhs->second < rhs->second;
 			}
 		};
 
@@ -317,13 +314,13 @@ namespace gdwg {
 
 		// returns an iterator to a <node, edge_set> pair in the graph given a source node else
 		// graph_.end() if node not in graph
-		auto get_connections(N node) -> auto {
+		auto get_connections(N node) -> typename graph_container::iterator {
 			return std::find_if(graph_.begin(), graph_.end(), [&node](auto const& n) {
 				return *n.first == node;
 			});
 		}
 
-		auto get_connections(N node) const -> auto {
+		auto get_connections(N node) const -> typename graph_container::const_iterator {
 			return std::find_if(graph_.begin(), graph_.end(), [&node](auto const& n) {
 				return *n.first == node;
 			});
@@ -417,10 +414,36 @@ namespace gdwg {
 		explicit iterator(map_iter graph_iter_begin, map_iter graph_iter_end, edges_iter edge_iter)
 		: graph_iter_{graph_iter_begin}
 		, graph_iter_end_{graph_iter_end}
-		, edge_iter_{edge_iter} {};
+		, edge_iter_{edge_iter} {
+			if (graph_iter_begin != graph_iter_end) {
+				while (graph_iter_ != graph_iter_end_ && graph_iter_->second.empty()) {
+					++graph_iter_;
+				}
+				if (graph_iter_ != graph_iter_end_) {
+					edge_iter_ = graph_iter_->second.begin();
+				}
+			}
+		};
 
 		friend class graph;
 	};
+
+	template<typename N, typename E>
+	auto graph<N, E>::erase_edge(iterator i) -> iterator {
+		auto next = i;
+		++next;
+		auto const& [to, from, weight] = *i;
+		erase_edge(to, from, weight);
+		return next;
+	};
+
+	template<typename N, typename E>
+	auto graph<N, E>::erase_edge(iterator i, iterator s) -> iterator {
+		while (i != s) {
+			i = erase_edge(i);
+		}
+		return i;
+	}
 
 } // namespace gdwg
 
