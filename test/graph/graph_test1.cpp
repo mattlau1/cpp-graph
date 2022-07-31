@@ -434,7 +434,7 @@ TEST_CASE("Node erasure (erase_node())") {
 		CHECK(g.find(3, 2, 1) == g.end());
 
 		// check if node 2 was erased from edges
-		CHECK(g.connections(1) == std::vector{1, 3});
+		CHECK(g.connections(1) == std::vector{3});
 		CHECK(g.connections(3) == std::vector{1});
 	}
 
@@ -442,4 +442,137 @@ TEST_CASE("Node erasure (erase_node())") {
 		REQUIRE_FALSE(g.is_node(4));
 		CHECK_FALSE(g.erase_node(4));
 	}
+}
+
+TEST_CASE("Edge erasure (erase_edge(src, dst, weight))") {
+	auto g = gdwg::graph<int, int>{1, 2, 3};
+	REQUIRE(g.nodes().size() == 3);
+	REQUIRE(g.insert_edge(1, 2, 1));
+	REQUIRE(g.insert_edge(2, 3, 1));
+	REQUIRE(g.insert_edge(3, 1, 1));
+
+	SECTION("Edges can be erased given a source, destination and weight") {
+		CHECK(g.is_connected(1, 2));
+		CHECK(g.find(1, 2, 1) != g.end());
+
+		CHECK(g.erase_edge(1, 2, 1));
+
+		CHECK_FALSE(g.is_connected(1, 2));
+		CHECK(g.find(1, 2, 1) == g.end());
+	}
+
+	SECTION("Edges cannot be erased if there is no matching edge between src and dst") {
+		// edge 2->1 does not exist
+		CHECK_FALSE(g.erase_edge(2, 1, 1));
+
+		// edge 1->2 exists but with weight 1
+		CHECK_FALSE(g.erase_edge(1, 2, 12));
+	}
+
+	SECTION("erase_edge(src, dst, weight) throws if src or dst do not exist") {
+		auto const& exception_msg = "Cannot call gdwg::graph<N, E>::erase_edge on src or dst if "
+		                            "they don't exist in the graph";
+
+		CHECK_THROWS_WITH(g.erase_edge(1, 4, 14), exception_msg);
+		CHECK_THROWS_AS(g.erase_edge(1, 4, 14), std::runtime_error);
+
+		CHECK_THROWS_WITH(g.erase_edge(4, 1, 41), exception_msg);
+		CHECK_THROWS_AS(g.erase_edge(4, 1, 41), std::runtime_error);
+
+		CHECK_THROWS_WITH(g.erase_edge(69, 69, 69), exception_msg);
+		CHECK_THROWS_AS(g.erase_edge(69, 69, 69), std::runtime_error);
+	}
+}
+
+TEST_CASE("Edge erasure (erase_edge(iterator))") {
+	auto g = gdwg::graph<int, int>{1, 2, 3};
+	REQUIRE(g.nodes().size() == 3);
+	REQUIRE(g.insert_edge(1, 2, 1));
+	REQUIRE(g.insert_edge(2, 3, 1));
+	REQUIRE(g.insert_edge(3, 1, 1));
+	SECTION("Edges can be erased given an iterator to the edge") {
+		auto const& it = g.begin();
+		auto const& [src, dst, weight] = *it;
+		REQUIRE(src == 1);
+		REQUIRE(dst == 2);
+		REQUIRE(weight == 1);
+
+		g.erase_edge(it);
+
+		CHECK_FALSE(g.is_connected(1, 2));
+		CHECK(g.find(1, 2, 1) == g.end());
+	}
+
+	SECTION("erase_edge(iterator) returns an iterator to the next edge") {
+		auto const& begin_iter = g.begin();
+		auto const& [src1, dst1, weight1] = *begin_iter;
+		REQUIRE(src1 == 1);
+		REQUIRE(dst1 == 2);
+		REQUIRE(weight1 == 1);
+
+		auto const& second_edge = g.erase_edge(begin_iter);
+		auto const& [src2, dst2, weight2] = *second_edge;
+		CHECK(src2 == 2);
+		CHECK(dst2 == 3);
+		CHECK(weight2 == 1);
+
+		auto const& third_edge = g.erase_edge(second_edge);
+		auto const& [src3, dst3, weight3] = *third_edge;
+		CHECK(src3 == 3);
+		CHECK(dst3 == 1);
+		CHECK(weight3 == 1);
+
+		// should return iterator to g.end(), since there are no more elements
+		auto const& end = g.erase_edge(third_edge);
+		CHECK(end == g.end());
+	}
+}
+
+TEST_CASE("Edge erasure (erase_edge(iterator1, iterator2))") {
+	auto g = gdwg::graph<int, int>{1, 2, 3};
+	REQUIRE(g.nodes().size() == 3);
+	REQUIRE(g.insert_edge(1, 2, 1));
+	REQUIRE(g.insert_edge(2, 3, 1));
+	REQUIRE(g.insert_edge(3, 1, 1));
+
+	SECTION("Edges can be erased given two iterators") {
+		CHECK(g.erase_edge(g.begin(), g.end()) == g.end());
+		CHECK_FALSE(g.is_connected(1, 2));
+		CHECK_FALSE(g.is_connected(2, 3));
+		CHECK_FALSE(g.is_connected(3, 1));
+	}
+
+	SECTION("erase_edge(iterator) returns an iterator to the next edge") {
+		auto second_last = g.begin();
+		++second_last;
+		++second_last;
+		auto const& last = g.erase_edge(g.begin(), second_last);
+		CHECK(last != g.end());
+
+		auto const& [src, dst, weight] = *last;
+		CHECK(src == 3);
+		CHECK(dst == 1);
+		CHECK(weight == 1);
+
+		CHECK(g.is_connected(3, 1));
+		CHECK(g.find(3, 1, 1) != g.end());
+
+		CHECK(g.erase_edge(last, g.end()) == g.end());
+	}
+}
+
+TEST_CASE("Graph clearing (graph.clear())") {
+	auto g = gdwg::graph<int, int>{1, 2, 3};
+	REQUIRE(g.nodes().size() == 3);
+	REQUIRE(g.insert_edge(1, 2, 1));
+	REQUIRE(g.insert_edge(2, 3, 1));
+	REQUIRE(g.insert_edge(3, 1, 1));
+
+	g.clear();
+	CHECK_THROWS(g.is_connected(1, 2));
+	CHECK_THROWS(g.is_connected(2, 3));
+	CHECK_THROWS(g.is_connected(3, 1));
+
+	CHECK(g.nodes().empty());
+	CHECK(g.empty());
 }

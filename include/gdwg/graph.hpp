@@ -544,12 +544,10 @@ namespace gdwg {
 		: graph_iter_{graph_iter_begin}
 		, graph_iter_end_{graph_iter_end}
 		, edge_iter_{edge_iter} {
-			if (graph_iter_begin != graph_iter_end) {
-				for (; graph_iter_ != graph_iter_end_ && graph_iter_->second.empty(); ++graph_iter_) {
-				}
-				if (graph_iter_ != graph_iter_end_) {
-					edge_iter_ = graph_iter_->second.begin();
-				}
+			for (; graph_iter_ != graph_iter_end_ && graph_iter_->second.empty(); ++graph_iter_) {
+			}
+			if (graph_iter_ != graph_iter_end_) {
+				edge_iter_ = graph_iter_->second.begin();
 			}
 		};
 
@@ -558,13 +556,12 @@ namespace gdwg {
 
 	template<typename N, typename E>
 	auto graph<N, E>::erase_edge(iterator i) -> iterator {
-		auto next = i;
-		++next;
-		auto const& edge_iter = i.edge_iter_;
-		auto const& src_node = (**edge_iter).first;
-		auto& edge_set = (graph_.find(src_node))->second;
+		auto next = i++;
+		auto const& edge_iter = next.edge_iter_;
+		auto const& src_node = next.graph_iter_->first;
+		auto& edge_set = graph_.find(src_node)->second;
 		edge_set.erase(edge_iter);
-		return next;
+		return i;
 	};
 
 	template<typename N, typename E>
