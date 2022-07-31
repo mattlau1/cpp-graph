@@ -153,10 +153,10 @@ namespace gdwg {
 			}
 
 			for (auto const& conn : graph_) {
-				if (conn->first == old_data) {
+				if (*conn.first == old_data) {
 					for (auto const& edge : conn.second) {
-						edge->first != old_data ? insert_edge(new_data, edge->first, edge->weight)
-						                        : insert_edge(new_data, new_data, edge->weight);
+						edge->first != old_data ? insert_edge(new_data, edge->first, edge->second)
+						                        : insert_edge(new_data, new_data, edge->second);
 						// if (edge->first != old_data) {
 						// 	insert_edge(new_data, edge->first, edge->weight);
 						// }
@@ -168,7 +168,7 @@ namespace gdwg {
 				else {
 					for (auto const& edge : conn.second) {
 						if (edge->first == old_data) {
-							insert_edge(conn->first, new_data, edge->weight);
+							insert_edge(*conn.first, new_data, edge->second);
 						}
 					}
 				}
@@ -178,11 +178,11 @@ namespace gdwg {
 
 		// Erases all nodes equivalent to value, including all incoming and outgoing edges.
 		auto erase_node(N const& value) -> bool {
-			if (is_node(value)) {
+			if (!is_node(value)) {
 				return false;
 			}
 
-			for (auto const& conn : graph_) {
+			for (auto& conn : graph_) {
 				std::erase_if(conn.second, [&value](auto const& edge) { return edge->first == value; });
 			}
 
