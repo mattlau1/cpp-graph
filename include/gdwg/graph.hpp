@@ -100,20 +100,13 @@ namespace gdwg {
 
 			auto const& src_iter = graph_.find(src);
 
-			// src node not found
-			if (src_iter == graph_.end()) {
-				return false;
-			}
-
 			// look for duplicate connection
 			if (src_iter->second.find(std::make_pair(dst, weight)) != src_iter->second.end()) {
 				return false;
 			}
 
-			// TODO(check if edge was actually added)
 			// graph[src] = unique_ptr(<dst, weight>)
-			src_iter->second.emplace(std::make_unique<edge>(std::make_pair(dst, weight)));
-			return true;
+			return (src_iter->second.emplace(std::make_unique<edge>(std::make_pair(dst, weight)))).second;
 		}
 
 		// Replaces the original data, old_data, stored at this particular node by the replacement
