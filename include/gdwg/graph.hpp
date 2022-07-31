@@ -128,19 +128,10 @@ namespace gdwg {
 				return false;
 			}
 
-			for (auto const& conn : graph_) {
-				if (*conn.first != old_data) {
-					// replace reference to old_data in conn with new_data
-					auto const& edges = graph_.find(*conn.first)->second;
-					(**edges.find(old_data)).first = new_data;
-				}
-				else {
-					// update key
-					auto item = graph_.extract(conn.first);
-					item.key() = std::make_unique<N>(new_data);
-					graph_.insert(std::move(item));
-				}
-			}
+			insert_node(new_data);
+
+			merge_replace_node(old_data, new_data);
+
 			return true;
 		}
 
