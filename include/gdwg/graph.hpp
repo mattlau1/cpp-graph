@@ -157,12 +157,6 @@ namespace gdwg {
 					for (auto const& edge : conn.second) {
 						edge->first != old_data ? insert_edge(new_data, edge->first, edge->second)
 						                        : insert_edge(new_data, new_data, edge->second);
-						// if (edge->first != old_data) {
-						// 	insert_edge(new_data, edge->first, edge->weight);
-						// }
-						// else {
-						// 	insert_edge(new_data, new_data, edge->weight);
-						// }
 					}
 				}
 				else {

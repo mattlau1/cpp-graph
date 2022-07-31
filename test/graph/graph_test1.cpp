@@ -43,7 +43,7 @@ TEST_CASE("Initialiser list constructor") {
 
 	SECTION("Graph can be constructed with a non empty initialiser list") {
 		auto const& g2 = gdwg::graph<int, std::string>{1, 2, 3, 4, 5};
-		CHECK(!g2.empty());
+		CHECK_FALSE(g2.empty());
 		CHECK(g2.nodes().size() == 5);
 		CHECK(g2.nodes() == std::vector<int>{1, 2, 3, 4, 5});
 		CHECK(g2.is_node(1));
@@ -57,7 +57,7 @@ TEST_CASE("Initialiser list constructor") {
 TEST_CASE("Range constructor") {
 	auto const& node_vec = std::vector<int>{1, 2, 3};
 	auto const& g1 = gdwg::graph<int, int>(node_vec.begin(), node_vec.end());
-	CHECK(!g1.empty());
+	CHECK_FALSE(g1.empty());
 	CHECK(g1.nodes().size() == 3);
 	CHECK(g1.nodes() == std::vector<int>{1, 2, 3});
 	CHECK(g1.is_node(1));
@@ -66,7 +66,7 @@ TEST_CASE("Range constructor") {
 
 	auto const& node_set = std::set<int>{1, 2, 3};
 	auto const& g2 = gdwg::graph<int, int>(node_set.begin(), node_set.end());
-	CHECK(!g2.empty());
+	CHECK_FALSE(g2.empty());
 	CHECK(g2.nodes().size() == 3);
 	CHECK(g2.nodes() == std::vector<int>{1, 2, 3});
 	CHECK(g2.is_node(1));
@@ -93,8 +93,8 @@ TEST_CASE("Move constructor") {
 	// All iterators pointing to elements owned by other prior to this constructor’s invocation
 	// remain valid, but now point to the elements owned by *this.
 	auto const& [src, dst, _] = *g1_iter;
-	CHECK(!g1.is_node(src));
-	CHECK(!g1.is_node(dst));
+	CHECK_FALSE(g1.is_node(src));
+	CHECK_FALSE(g1.is_node(dst));
 
 	CHECK(g2.is_node(src));
 	CHECK(g2.is_node(dst));
@@ -118,8 +118,8 @@ TEST_CASE("Move assignment") {
 	// All iterators pointing to elements owned by other prior to this operator’s invocation remain
 	// valid, but now point to the elements owned by *this.
 	auto const& [src, dst, _] = *g1_iter;
-	CHECK(!g1.is_node(src));
-	CHECK(!g1.is_node(dst));
+	CHECK_FALSE(g1.is_node(src));
+	CHECK_FALSE(g1.is_node(dst));
 
 	CHECK(g2.is_node(src));
 	CHECK(g2.is_node(dst));
@@ -133,14 +133,14 @@ TEST_CASE("Copy constructor") {
 	auto const& g2 = gdwg::graph<int, int>(g1);
 
 	// g1 should have valid nodes and edges
-	REQUIRE(!g1.empty());
+	REQUIRE_FALSE(g1.empty());
 	REQUIRE(g1.is_node(1));
 	REQUIRE(g1.is_node(2));
 	REQUIRE(g1.is_connected(1, 2));
 	REQUIRE(g1.is_connected(2, 1));
 
 	// g2 should have the same nodes and edges
-	CHECK(!g2.empty());
+	CHECK_FALSE(g2.empty());
 	CHECK(g2.is_node(1));
 	CHECK(g2.is_node(2));
 	CHECK(g2.is_connected(1, 2));
@@ -155,14 +155,14 @@ TEST_CASE("Copy assignment") {
 	auto const& g2 = g1;
 
 	// g1 should have valid nodes and edges
-	REQUIRE(!g1.empty());
+	REQUIRE_FALSE(g1.empty());
 	REQUIRE(g1.is_node(1));
 	REQUIRE(g1.is_node(2));
 	REQUIRE(g1.is_connected(1, 2));
 	REQUIRE(g1.is_connected(2, 1));
 
 	// g2 should have the same nodes and edges
-	CHECK(!g2.empty());
+	CHECK_FALSE(g2.empty());
 	CHECK(g2.is_node(1));
 	CHECK(g2.is_node(2));
 	CHECK(g2.is_connected(1, 2));
@@ -179,9 +179,9 @@ TEST_CASE("Node insertion (insert_node())") {
 	CHECK(g.insert_node("2"));
 
 	// unsuccessful insertion due to duplicate
-	CHECK(!g.insert_node("2"));
+	CHECK_FALSE(g.insert_node("2"));
 
-	CHECK(!g.empty());
+	CHECK_FALSE(g.empty());
 	CHECK(g.nodes().size() == 2);
 	CHECK(g.nodes() == std::vector<std::string>{"1", "2"});
 }
@@ -191,7 +191,7 @@ TEST_CASE("Edge insertion (insert_edge())") {
 	REQUIRE(g.insert_node(1));
 	REQUIRE(g.insert_node(2));
 	REQUIRE(g.insert_node(3));
-	REQUIRE(!g.empty());
+	REQUIRE_FALSE(g.empty());
 	REQUIRE(g.nodes() == std::vector<int>{1, 2, 3});
 
 	SECTION("Edges can be validly inserted") {
@@ -213,7 +213,7 @@ TEST_CASE("Edge insertion (insert_edge())") {
 
 	SECTION("Duplicate edges cannot be added") {
 		CHECK(g.insert_edge(1, 3, "a"));
-		CHECK(!g.insert_edge(1, 3, "a"));
+		CHECK_FALSE(g.insert_edge(1, 3, "a"));
 		CHECK(g.is_connected(1, 3));
 		CHECK(g.connections(1).size() == 1);
 		CHECK(g.connections(1).front() == 3);
@@ -260,7 +260,7 @@ TEST_CASE("Node replacement (replace_node())") {
 
 		CHECK(g.replace_node("c", "d"));
 
-		CHECK(!g.is_node("c"));
+		CHECK_FALSE(g.is_node("c"));
 		CHECK(g.is_node("d"));
 
 		// all edges to/from "c" should now connect to "d" instead
@@ -273,8 +273,8 @@ TEST_CASE("Node replacement (replace_node())") {
 	}
 
 	SECTION("replace_node() returns false and nothing happens if new_data is already a node") {
-		CHECK(!g.replace_node("a", "b"));
-		CHECK(!g.replace_node("b", "b"));
+		CHECK_FALSE(g.replace_node("a", "b"));
+		CHECK_FALSE(g.replace_node("b", "b"));
 
 		CHECK(g.nodes() == std::vector<std::string>{"a", "b", "c"});
 	}
@@ -299,7 +299,7 @@ TEST_CASE("Node merge replacement (merge_replace_node())") {
 
 			CHECK_NOTHROW(g.merge_replace_node("a", "b"));
 
-			CHECK(!g.is_node("a"));
+			CHECK_FALSE(g.is_node("a"));
 
 			CHECK(g.is_connected("b", "b"));
 			CHECK(g.weights("b", "b").size() == 1);
@@ -323,7 +323,7 @@ TEST_CASE("Node merge replacement (merge_replace_node())") {
 
 			CHECK_NOTHROW(g.merge_replace_node("a", "b"));
 
-			CHECK(!g.is_node("a"));
+			CHECK_FALSE(g.is_node("a"));
 
 			CHECK(g.is_connected("b", "b"));
 			CHECK(g.weights("b", "b").size() == 1);
@@ -345,7 +345,7 @@ TEST_CASE("Node merge replacement (merge_replace_node())") {
 
 			CHECK_NOTHROW(g.merge_replace_node("b", "a"));
 
-			CHECK(!g.is_node("b"));
+			CHECK_FALSE(g.is_node("b"));
 
 			CHECK(g.is_connected("a", "a"));
 			CHECK(g.weights("a", "a").size() == 1);
@@ -367,7 +367,7 @@ TEST_CASE("Node merge replacement (merge_replace_node())") {
 
 			CHECK_NOTHROW(g.merge_replace_node("b", "a"));
 
-			CHECK(!g.is_node("b"));
+			CHECK_FALSE(g.is_node("b"));
 
 			CHECK(g.is_connected("a", "a"));
 			CHECK(g.weights("a", "a").size() == 1);
@@ -381,5 +381,65 @@ TEST_CASE("Node merge replacement (merge_replace_node())") {
 			CHECK(g.weights("a", "d").size() == 1);
 			CHECK(g.weights("a", "d").front() == 4);
 		}
+	}
+
+	SECTION("merge_replace_node() throws if old_data or new_data is not a node") {
+		auto const& exception_msg = "Cannot call gdwg::graph<N, E>::merge_replace_node on old or new "
+		                            "data if they don't exist in the graph";
+
+		CHECK_THROWS_WITH(g.merge_replace_node("abc", "a"), exception_msg);
+		CHECK_THROWS_AS(g.merge_replace_node("abc", "a"), std::runtime_error);
+
+		CHECK_THROWS_WITH(g.merge_replace_node("a", "abc"), exception_msg);
+		CHECK_THROWS_AS(g.merge_replace_node("a", "abc"), std::runtime_error);
+
+		CHECK_THROWS_WITH(g.merge_replace_node("abc", "def"), exception_msg);
+		CHECK_THROWS_AS(g.merge_replace_node("abc", "def"), std::runtime_error);
+	}
+}
+
+TEST_CASE("Node erasure (erase_node())") {
+	auto g = gdwg::graph<int, int>{1, 2, 3};
+	REQUIRE(g.nodes().size() == 3);
+
+	SECTION("Nodes can be erased from graphs without edges") {
+		CHECK(g.erase_node(2));
+		CHECK_FALSE(g.is_node(2));
+		CHECK(g.nodes() == std::vector<int>{1, 3});
+
+		CHECK(g.erase_node(3));
+		CHECK_FALSE(g.is_node(3));
+		CHECK(g.nodes() == std::vector<int>{1});
+
+		CHECK(g.erase_node(1));
+		CHECK_FALSE(g.is_node(1));
+		CHECK(g.nodes().empty());
+	}
+
+	SECTION("Nodes can be erased from graphs with edges") {
+		REQUIRE(g.insert_edge(1, 3, 1));
+		REQUIRE(g.insert_edge(3, 1, 1));
+		REQUIRE(g.insert_edge(1, 2, 1));
+		REQUIRE(g.insert_edge(3, 2, 1));
+
+		CHECK(g.erase_node(2));
+		CHECK_FALSE(g.is_node(2));
+		CHECK(g.nodes() == std::vector<int>{1, 3});
+
+		// edges 1---1-->2 & 3---1-->2 should not exist
+		CHECK_THROWS(g.is_connected(1, 2));
+		CHECK_THROWS(g.is_connected(3, 2));
+
+		CHECK(g.find(1, 2, 1) == g.end());
+		CHECK(g.find(3, 2, 1) == g.end());
+
+		// check if node 2 was erased from edges
+		CHECK(g.connections(1) == std::vector{1, 3});
+		CHECK(g.connections(3) == std::vector{1});
+	}
+
+	SECTION("erase_node() returns false if node was not erased") {
+		REQUIRE_FALSE(g.is_node(4));
+		CHECK_FALSE(g.erase_node(4));
 	}
 }
