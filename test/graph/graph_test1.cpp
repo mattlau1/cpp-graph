@@ -705,3 +705,35 @@ TEST_CASE("Edge accessor (find())") {
 		CHECK(g.find(4, 3, 1) == g.end());
 	}
 }
+
+TEST_CASE("Node connections accessor (connections())") {
+	auto g = gdwg::graph<int, int>{1, 2, 3};
+	REQUIRE(g.nodes().size() == 3);
+	REQUIRE(g.insert_edge(1, 2, 1));
+	REQUIRE(g.insert_edge(1, 2, 2));
+	REQUIRE(g.insert_edge(1, 2, 3));
+	REQUIRE(g.insert_edge(2, 3, 4));
+	REQUIRE(g.insert_edge(3, 1, 5));
+	REQUIRE(g.insert_edge(3, 3, 5));
+	REQUIRE(g.insert_edge(3, 3, 6));
+
+	SECTION("All connections from a given node can be returned") {
+		// 3 of the same connections but with different weights
+		CHECK(g.connections(1).front() == 2);
+
+		// 1 connection
+		CHECK(g.connections(2).front() == 3);
+
+		// 2 of the same connections with different weights + 1 different connection
+		CHECK(g.connections(3).front() == 1);
+		CHECK(g.connections(3).back() == 3);
+	}
+
+	SECTION("connections() throws if src does not exist in graph") {
+		auto const& exception_msg = "Cannot call gdwg::graph<N, E>::connections if src doesn't exist "
+		                            "in the graph";
+
+		CHECK_THROWS_WITH(g.connections(4), exception_msg);
+		CHECK_THROWS_AS(g.connections(4), std::runtime_error);
+	}
+}

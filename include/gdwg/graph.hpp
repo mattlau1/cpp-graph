@@ -299,6 +299,11 @@ namespace gdwg {
 		// sorted in ascending order, with respect to the connected nodes.
 		// Complexity: O(log (n) + e), where e is the number of outgoing edges associated with src.
 		[[nodiscard]] auto connections(N const& src) const -> std::vector<N> {
+			if (!is_node(src)) {
+				throw std::runtime_error("Cannot call gdwg::graph<N, E>::connections if src doesn't "
+				                         "exist in the graph");
+			}
+
 			auto res = std::set<N>{};
 			for (auto const& conn : graph_.find(src)->second) {
 				res.emplace(conn->first);
