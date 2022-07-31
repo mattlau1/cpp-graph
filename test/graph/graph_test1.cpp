@@ -226,7 +226,6 @@ TEST_CASE("Edge insertion (insert_edge())") {
 		auto const& exception_msg = "Cannot call gdwg::graph<N, E>::insert_edge when either src or "
 		                            "dst node does not "
 		                            "exist";
-		// node 4 does not exist in graph g
 		CHECK_THROWS_WITH(g.insert_edge(4, 1, "a"), exception_msg);
 		CHECK_THROWS_WITH(g.insert_edge(1, 4, "a"), exception_msg);
 		CHECK_THROWS_WITH(g.insert_edge(4, 4, "a"), exception_msg);
@@ -561,7 +560,7 @@ TEST_CASE("Edge erasure (erase_edge(iterator1, iterator2))") {
 	}
 }
 
-TEST_CASE("Graph clearing (graph.clear())") {
+TEST_CASE("Graph clearing (clear())") {
 	auto g = gdwg::graph<int, int>{1, 2, 3};
 	REQUIRE(g.nodes().size() == 3);
 	REQUIRE(g.insert_edge(1, 2, 1));
@@ -575,4 +574,52 @@ TEST_CASE("Graph clearing (graph.clear())") {
 
 	CHECK(g.nodes().empty());
 	CHECK(g.empty());
+}
+
+TEST_CASE("Node accessor (is_node())") {
+	auto const& g = gdwg::graph<int, int>{1, 2, 3};
+	CHECK(g.is_node(1));
+	CHECK(g.is_node(2));
+	CHECK(g.is_node(3));
+
+	CHECK_FALSE(g.is_node(4));
+	CHECK_FALSE(g.is_node(5));
+	CHECK_FALSE(g.is_node(6));
+}
+
+TEST_CASE("Empty accessor (empty())") {
+	auto const& g1 = gdwg::graph<int, int>();
+	CHECK(g1.nodes().empty());
+	CHECK(g1.empty());
+}
+
+TEST_CASE("Edge accessor (is_connected())") {
+	auto g = gdwg::graph<int, int>{1, 2, 3};
+	REQUIRE(g.nodes().size() == 3);
+	REQUIRE(g.insert_edge(1, 2, 1));
+	REQUIRE(g.insert_edge(2, 3, 1));
+	REQUIRE(g.insert_edge(3, 1, 1));
+
+	SECTION("The existence of edges between two nodes can be checked") {
+		CHECK(g.is_connected(1, 2));
+		CHECK(g.is_connected(2, 3));
+		CHECK(g.is_connected(3, 1));
+
+		CHECK_FALSE(g.is_connected(2, 1));
+		CHECK_FALSE(g.is_connected(3, 2));
+		CHECK_FALSE(g.is_connected(1, 3));
+	}
+
+	SECTION("is_connected() throws if src or dst nodes do not exist in graph") {
+		auto const& exception_msg = "Cannot call gdwg::graph<N, E>::is_connected if src or dst node "
+		                            "don't exist in the graph";
+
+		CHECK_THROWS_WITH(g.is_connected(1, 4), exception_msg);
+		CHECK_THROWS_WITH(g.is_connected(4, 1), exception_msg);
+		CHECK_THROWS_WITH(g.is_connected(4, 4), exception_msg);
+
+		CHECK_THROWS_AS(g.is_connected(1, 4), std::runtime_error);
+		CHECK_THROWS_AS(g.is_connected(4, 1), std::runtime_error);
+		CHECK_THROWS_AS(g.is_connected(4, 4), std::runtime_error);
+	}
 }
