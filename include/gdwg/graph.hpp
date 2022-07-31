@@ -8,7 +8,6 @@
 #include <map>
 #include <memory>
 #include <set>
-#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -97,8 +96,7 @@ namespace gdwg {
 				throw std::runtime_error("Cannot call gdwg::graph<N, E>::insert_edge when either src "
 				                         "or dst node does not exist");
 			}
-			// TODO(check if edge was actually added)
-			// get src node iterator
+
 			auto const& src_iter = graph_.find(src);
 
 			// src node not found
@@ -111,6 +109,7 @@ namespace gdwg {
 				return false;
 			}
 
+			// TODO(check if edge was actually added)
 			// graph[src] = unique_ptr(<dst, weight>)
 			src_iter->second.emplace(std::make_unique<edge>(std::make_pair(dst, weight)));
 			return true;
@@ -319,7 +318,7 @@ namespace gdwg {
 
 		// Returns: An iterator pointing to the first element in the container.
 		[[nodiscard]] auto begin() const -> iterator {
-			return iterator(graph_.begin(), graph_.end(), (graph_.begin())->second.begin());
+			return iterator(graph_.begin(), graph_.end(), {});
 		}
 
 		// Returns: An iterator denoting the end of the iterable list that begin() points to.
