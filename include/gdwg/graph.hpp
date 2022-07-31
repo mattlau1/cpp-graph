@@ -57,15 +57,15 @@ namespace gdwg {
 		graph(graph const& other)
 		: graph_{graph_container{}} {
 			auto const& other_nodes = other.nodes();
-			std::for_each(other_nodes.begin(), other_nodes.end(), [this](auto const& node) {
+			for (auto const& node : other_nodes) {
 				insert_node(node);
-			});
+			}
 
-			std::for_each(other.graph_.begin(), other.graph_.end(), [this](auto const& conn) {
-				std::for_each(conn.second.begin(), conn.second.end(), [this, &conn](auto const& edge) {
+			for (auto const& conn : other.graph_) {
+				for (auto const& edge : conn.second) {
 					insert_edge(*conn.first, edge->first, edge->second);
-				});
-			});
+				}
+			}
 		};
 
 		auto operator=(graph const& other) -> graph& {
@@ -107,12 +107,12 @@ namespace gdwg {
 			}
 
 			// look for duplicate connection
-			if (src_iter->second.find(make_pair(dst, weight)) != src_iter->second.end()) {
+			if (src_iter->second.find(std::make_pair(dst, weight)) != src_iter->second.end()) {
 				return false;
 			}
 
 			// graph[src] = unique_ptr(<dst, weight>)
-			src_iter->second.emplace(std::make_unique<std::pair<N, E>>(std::make_pair(dst, weight)));
+			src_iter->second.emplace(std::make_unique<edge>(std::make_pair(dst, weight)));
 			return true;
 		}
 
@@ -123,27 +123,25 @@ namespace gdwg {
 				throw std::runtime_error("Cannot call gdwg::graph<N, E>::replace_node on a node that "
 				                         "doesn't exist");
 			}
-			if (!is_node(new_data)) {
+
+			if (is_node(new_data)) {
 				return false;
 			}
 
 			for (auto const& conn : graph_) {
-				if (conn->first != old_data) {
+				if (*conn.first != old_data) {
 					// replace reference to old_data in conn with new_data
-					for (auto const& edge : graph_.find(conn)->second) {
-						if (edge->first == old_data) {
-							edge->first = new_data;
-							break;
-						}
-					}
+					auto const& edges = graph_.find(*conn.first)->second;
+					(**edges.find(old_data)).first = new_data;
 				}
 				else {
 					// update key
-					auto item = graph_.extract(conn);
-					item.key() = std::make_unique(new_data);
+					auto item = graph_.extract(conn.first);
+					item.key() = std::make_unique<N>(new_data);
 					graph_.insert(std::move(item));
 				}
 			}
+			return true;
 		}
 
 		// The node equivalent to old_data in the graph are replaced with instances of new_data. After
@@ -158,12 +156,14 @@ namespace gdwg {
 			for (auto const& conn : graph_) {
 				if (conn->first == old_data) {
 					for (auto const& edge : conn.second) {
-						if (edge->first != old_data) {
-							insert_edge(new_data, edge->first, edge->weight);
-						}
-						else {
-							insert_edge(new_data, new_data, edge->weight);
-						}
+						edge->first != old_data ? insert_edge(new_data, edge->first, edge->weight)
+						                        : insert_edge(new_data, new_data, edge->weight);
+						// if (edge->first != old_data) {
+						// 	insert_edge(new_data, edge->first, edge->weight);
+						// }
+						// else {
+						// 	insert_edge(new_data, new_data, edge->weight);
+						// }
 					}
 				}
 				else {
@@ -182,9 +182,11 @@ namespace gdwg {
 			if (is_node(value)) {
 				return false;
 			}
+
 			for (auto const& conn : graph_) {
 				std::erase_if(conn.second, [&value](auto const& edge) { return edge->first == value; });
 			}
+
 			graph_.erase(graph_.find(value)->first);
 			return true;
 		}
@@ -197,9 +199,21 @@ namespace gdwg {
 				throw std::runtime_error("Cannot call gdwg::graph<N, E>::erase_edge on src or dst if "
 				                         "they don't exist in the graph");
 			}
-			std::erase_if(graph_.find(src)->second, [&dst, &weight](auto const& edge) {
-				return edge->first == dst && edge->second == weight;
-			});
+
+			if (!is_connected(src, dst)) {
+				return false;
+			}
+
+			auto const& src_node = graph_.find(src);
+			auto& src_node_edges = src_node->second;
+			auto const& edge_iter = src_node_edges.find(std::make_pair(dst, weight));
+
+			// edge doesn't exist
+			if (edge_iter == src_node_edges.end()) {
+				return false;
+			}
+
+			src_node_edges.erase(edge_iter);
 			return true;
 		}
 
@@ -281,7 +295,7 @@ namespace gdwg {
 			}
 
 			// log(e)
-			auto edge_iter = graph_iter->second.find(make_pair(dst, weight));
+			auto edge_iter = graph_iter->second.find(std::make_pair(dst, weight));
 			if (edge_iter == graph_iter->second.end()) {
 				return end();
 			}
@@ -374,54 +388,55 @@ namespace gdwg {
 		}
 
 	private:
-		using node = std::unique_ptr<N>;
-		using edge = std::unique_ptr<std::pair<N, E>>;
+		using node_ptr = std::unique_ptr<N>;
+		using edge = std::pair<N, E>;
+		using edge_ptr = std::unique_ptr<edge>;
 
 		struct graph_map_comparator {
 			using is_transparent = void;
-			auto operator()(node const& lhs, node const& rhs) const -> bool {
+			auto operator()(node_ptr const& lhs, node_ptr const& rhs) const -> bool {
 				return *lhs < *rhs;
 			}
 
-			auto operator()(node const& lhs, N const& rhs) const noexcept -> bool {
+			auto operator()(node_ptr const& lhs, N const& rhs) const noexcept -> bool {
 				return *lhs < rhs;
 			}
 
-			auto operator()(N const& lhs, node const& rhs) const noexcept -> bool {
+			auto operator()(N const& lhs, node_ptr const& rhs) const noexcept -> bool {
 				return lhs < *rhs;
 			}
 		};
 
 		struct edge_set_comparator {
 			using is_transparent = void;
-			auto operator()(edge const& lhs, edge const& rhs) const -> bool {
+			auto operator()(edge_ptr const& lhs, edge_ptr const& rhs) const -> bool {
 				if (lhs->first != rhs->first) {
 					return lhs->first < rhs->first;
 				}
 				return lhs->second < rhs->second;
 			}
-			auto operator()(const edge& lhs, const std::pair<N, E>& rhs) const -> bool {
+			auto operator()(const edge_ptr& lhs, const edge& rhs) const -> bool {
 				if (lhs->first != rhs.first) {
 					return lhs->first < rhs.first;
 				}
 				return lhs->second < rhs.second;
 			}
-			auto operator()(const std::pair<N, E>& lhs, const edge& rhs) const -> bool {
+			auto operator()(const edge& lhs, const edge_ptr& rhs) const -> bool {
 				if (lhs.first != rhs->first) {
 					return lhs.first < rhs->first;
 				}
 				return lhs.second < rhs->second;
 			}
-			auto operator()(N lhs, const edge& rhs) const -> bool {
+			auto operator()(N lhs, const edge_ptr& rhs) const -> bool {
 				return lhs < rhs->first;
 			}
-			auto operator()(const edge& lhs, N rhs) const -> bool {
+			auto operator()(const edge_ptr& lhs, N rhs) const -> bool {
 				return lhs->first < rhs;
 			}
 		};
 
-		using edge_set = std::set<edge, edge_set_comparator>;
-		using graph_container = std::map<node, edge_set, graph_map_comparator>;
+		using edge_set = std::set<edge_ptr, edge_set_comparator>;
+		using graph_container = std::map<node_ptr, edge_set, graph_map_comparator>;
 		graph_container graph_;
 	};
 
@@ -552,15 +567,10 @@ namespace gdwg {
 	auto graph<N, E>::erase_edge(iterator i) -> iterator {
 		auto next = i;
 		++next;
-		auto const& graph_iter = i.graph_iter_;
 		auto const& edge_iter = i.edge_iter_;
 		auto const& src_node = (**edge_iter).first;
 		auto& edge_set = (graph_.find(src_node))->second;
 		edge_set.erase(edge_iter);
-
-		if (edge_set.empty()) {
-			graph_.erase(graph_iter);
-		}
 		return next;
 	};
 
