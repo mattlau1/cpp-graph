@@ -548,12 +548,13 @@ TEST_CASE("Edge erasure (erase_edge(iterator1, iterator2))") {
 		auto const& last = g.erase_edge(g.begin(), second_last);
 		CHECK(last != g.end());
 
-		auto const& [src, dst, weight] = *last;
-		CHECK(src == 3);
-		CHECK(dst == 1);
-		CHECK(weight == 1);
+		auto const& [l_src, l_dst, l_weight] = *last;
+		CHECK(l_src == 3);
+		CHECK(l_dst == 1);
+		CHECK(l_weight == 1);
 
 		CHECK(g.is_connected(3, 1));
+		CHECK(g.weights(3, 1).front() == 1);
 		CHECK(g.find(3, 1, 1) != g.end());
 
 		CHECK(g.erase_edge(last, g.end()) == g.end());
@@ -576,7 +577,7 @@ TEST_CASE("Graph clearing (clear())") {
 	CHECK(g.empty());
 }
 
-TEST_CASE("Node accessor (is_node())") {
+TEST_CASE("Node existence accessor (is_node())") {
 	auto const& g = gdwg::graph<int, int>{1, 2, 3};
 	CHECK(g.is_node(1));
 	CHECK(g.is_node(2));
@@ -593,7 +594,7 @@ TEST_CASE("Empty accessor (empty())") {
 	CHECK(g1.empty());
 }
 
-TEST_CASE("Edge accessor (is_connected())") {
+TEST_CASE("Edge existence accessor (is_connected())") {
 	auto g = gdwg::graph<int, int>{1, 2, 3};
 	REQUIRE(g.nodes().size() == 3);
 	REQUIRE(g.insert_edge(1, 2, 1));
@@ -621,5 +622,86 @@ TEST_CASE("Edge accessor (is_connected())") {
 		CHECK_THROWS_AS(g.is_connected(1, 4), std::runtime_error);
 		CHECK_THROWS_AS(g.is_connected(4, 1), std::runtime_error);
 		CHECK_THROWS_AS(g.is_connected(4, 4), std::runtime_error);
+	}
+}
+
+TEST_CASE("Node accessor (nodes())") {
+	auto const& g = gdwg::graph<int, int>{1, 2, 3};
+	CHECK_FALSE(g.empty());
+
+	auto const& nodes = g.nodes();
+	CHECK(nodes.size() == 3);
+	CHECK(nodes.front() == 1);
+	CHECK(nodes.at(1) == 2);
+	CHECK(nodes.back() == 3);
+}
+
+TEST_CASE("Edge weight accessor (weights())") {
+	auto g = gdwg::graph<int, int>{1, 2, 3};
+	REQUIRE(g.nodes().size() == 3);
+	REQUIRE(g.insert_edge(1, 2, 1));
+	REQUIRE(g.insert_edge(1, 2, 2));
+	REQUIRE(g.insert_edge(1, 2, 3));
+	REQUIRE(g.insert_edge(2, 3, 4));
+	REQUIRE(g.insert_edge(3, 1, 5));
+	REQUIRE(g.insert_edge(3, 3, 5));
+	REQUIRE(g.insert_edge(3, 3, 6));
+
+	SECTION("Edge weights can be returned") {
+		CHECK(g.weights(1, 2) == std::vector<int>{1, 2, 3});
+		CHECK(g.weights(2, 3).front() == 4);
+		CHECK(g.weights(3, 1).front() == 5);
+		CHECK(g.weights(3, 3).front() == 5);
+		CHECK(g.weights(3, 3).back() == 6);
+	}
+
+	SECTION("weights() throws if src or dst nodes do not exist in graph") {
+		auto const& exception_msg = "Cannot call gdwg::graph<N, E>::weights if src or dst node don't "
+		                            "exist in the graph";
+
+		CHECK_THROWS_WITH(g.weights(1, 4), exception_msg);
+		CHECK_THROWS_WITH(g.weights(4, 1), exception_msg);
+		CHECK_THROWS_WITH(g.weights(4, 4), exception_msg);
+
+		CHECK_THROWS_AS(g.weights(1, 4), std::runtime_error);
+		CHECK_THROWS_AS(g.weights(4, 1), std::runtime_error);
+		CHECK_THROWS_AS(g.weights(4, 4), std::runtime_error);
+	}
+}
+
+TEST_CASE("Edge accessor (find())") {
+	auto g = gdwg::graph<int, int>{1, 2, 3};
+	REQUIRE(g.nodes().size() == 3);
+	REQUIRE(g.insert_edge(1, 2, 1));
+	REQUIRE(g.insert_edge(2, 3, 1));
+	REQUIRE(g.insert_edge(3, 1, 1));
+
+	SECTION("Iterators to matching edges can be returned") {
+		auto const& edge1_it = g.find(1, 2, 1);
+		auto const& [src1, dst1, weight1] = *edge1_it;
+		CHECK(src1 == 1);
+		CHECK(dst1 == 2);
+		CHECK(weight1 == 1);
+
+		auto const& edge2_it = g.find(2, 3, 1);
+		auto const& [src2, dst2, weight2] = *edge2_it;
+		CHECK(src2 == 2);
+		CHECK(dst2 == 3);
+		CHECK(weight2 == 1);
+
+		auto const& edge3_it = g.find(3, 1, 1);
+		auto const& [src3, dst3, weight3] = *edge3_it;
+		CHECK(src3 == 3);
+		CHECK(dst3 == 1);
+		CHECK(weight3 == 1);
+	}
+
+	SECTION("find() returns end() if a given edge does not exist") {
+		// edge 1->2 exists but different weight
+		CHECK(g.find(1, 2, 3) == g.end());
+
+		// node 4 does not exist
+		CHECK(g.find(3, 4, 1) == g.end());
+		CHECK(g.find(4, 3, 1) == g.end());
 	}
 }
