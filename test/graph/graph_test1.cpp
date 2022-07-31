@@ -1,8 +1,6 @@
 #include "gdwg/graph.hpp"
 
 #include <catch2/catch.hpp>
-#include <memory>
-#include <stdexcept>
 
 TEST_CASE("basic test") {
 	// This will not compile straight away
@@ -627,7 +625,7 @@ TEST_CASE("Edge existence accessor (is_connected())") {
 
 TEST_CASE("Node accessor (nodes())") {
 	auto const& g = gdwg::graph<int, int>{1, 2, 3};
-	CHECK_FALSE(g.empty());
+	REQUIRE_FALSE(g.empty());
 
 	auto const& nodes = g.nodes();
 	CHECK(nodes.size() == 3);
@@ -735,5 +733,253 @@ TEST_CASE("Node connections accessor (connections())") {
 
 		CHECK_THROWS_WITH(g.connections(4), exception_msg);
 		CHECK_THROWS_AS(g.connections(4), std::runtime_error);
+	}
+}
+
+TEST_CASE("Begin iterator (begin())") {
+	auto g = gdwg::graph<int, int>{1, 2, 3};
+	REQUIRE(g.nodes().size() == 3);
+	REQUIRE(g.insert_edge(1, 2, 1));
+	REQUIRE(g.insert_edge(3, 1, 1));
+
+	auto it = g.begin();
+	auto const& [src1, dst1, weight1] = *it;
+	CHECK(src1 == 1);
+	CHECK(dst1 == 2);
+	CHECK(weight1 == 1);
+	CHECK(g.find(1, 2, 1) == it);
+}
+
+TEST_CASE("End iterator (end())") {
+	auto g = gdwg::graph<int, int>{1, 2, 3};
+	REQUIRE(g.nodes().size() == 3);
+	REQUIRE(g.insert_edge(1, 2, 1));
+	REQUIRE(g.insert_edge(3, 1, 1));
+
+	auto it = g.begin();
+	++it;
+	++it;
+
+	CHECK(it == g.end());
+}
+
+TEST_CASE("Equality testing (operator==)") {
+	auto g1 = gdwg::graph<int, int>{1, 2, 3};
+	REQUIRE(g1.nodes().size() == 3);
+	REQUIRE(g1.insert_edge(1, 2, 1));
+	REQUIRE(g1.insert_edge(3, 1, 1));
+
+	SECTION("Graphs with the same nodes and edges are equal") {
+		auto g2 = gdwg::graph<int, int>{1, 2, 3};
+		REQUIRE(g2.nodes().size() == 3);
+		REQUIRE(g2.insert_edge(1, 2, 1));
+		REQUIRE(g2.insert_edge(3, 1, 1));
+		CHECK(g1 == g2);
+		CHECK(g1 == g1);
+		CHECK(g2 == g2);
+	}
+
+	SECTION("Graphs with the same nodes but different edges are not equal") {
+		auto g2 = gdwg::graph<int, int>{1, 2, 3};
+		REQUIRE(g2.nodes().size() == 3);
+		REQUIRE(g2.insert_edge(1, 2, 1));
+		REQUIRE(g2.insert_edge(2, 3, 1));
+		CHECK(g1 != g2);
+
+		// replace different edge
+		REQUIRE(g2.erase_edge(2, 3, 1));
+		REQUIRE(g2.insert_edge(3, 1, 1));
+		CHECK(g1 == g2);
+
+		// same edge, different weight
+		REQUIRE(g2.insert_edge(3, 1, 12));
+		CHECK(g1 != g2);
+	}
+
+	SECTION("Graphs with different nodes are not equal") {
+		auto g2 = gdwg::graph<int, int>{4, 5, 6};
+		REQUIRE(g2.nodes().size() == 3);
+		CHECK(g1 != g2);
+	}
+
+	SECTION("Graphs with different edges but same weights are not equal") {
+		auto g2 = gdwg::graph<int, int>{1, 2, 3};
+		REQUIRE(g2.nodes().size() == 3);
+		REQUIRE(g2.insert_edge(2, 1, 1));
+		REQUIRE(g2.insert_edge(1, 3, 1));
+		CHECK(g1 != g2);
+	}
+
+	SECTION("Empty graphs are equal") {
+		auto const& g2 = gdwg::graph<int, int>{};
+		REQUIRE(g2.nodes().empty());
+
+		auto const& g3 = gdwg::graph<int, int>{};
+		REQUIRE(g3.nodes().empty());
+		CHECK(g2 == g3);
+	}
+}
+
+TEST_CASE("Graph extractor (operator<<)") {
+	// test case taken from assignment spec
+	SECTION("Assignment spec example 1") {
+		auto g = gdwg::graph<int, int>{};
+		g.insert_node(4);
+		g.insert_node(1);
+		g.insert_edge(4, 1, -4);
+		g.insert_node(3);
+		g.insert_node(2);
+		g.insert_edge(3, 2, 2);
+		g.insert_node(2);
+		g.insert_node(4);
+		g.insert_edge(2, 4, 2);
+		g.insert_node(2);
+		g.insert_node(1);
+		g.insert_edge(2, 1, 1);
+		g.insert_node(6);
+		g.insert_node(2);
+		g.insert_edge(6, 2, 5);
+		g.insert_node(6);
+		g.insert_node(3);
+		g.insert_edge(6, 3, 10);
+		g.insert_node(1);
+		g.insert_node(5);
+		g.insert_edge(1, 5, -1);
+		g.insert_node(3);
+		g.insert_node(6);
+		g.insert_edge(3, 6, -8);
+		g.insert_node(4);
+		g.insert_node(5);
+		g.insert_edge(4, 5, 3);
+		g.insert_node(5);
+		g.insert_node(2);
+		g.insert_edge(5, 2, 7);
+		g.insert_node(64);
+
+		auto out = std::ostringstream{};
+		out << g;
+
+		// adapted from spec
+		auto eo = std::string{};
+		eo.append("1 (\n");
+		eo.append("  5 | -1\n");
+		eo.append(")\n");
+		eo.append("2 (\n");
+		eo.append("  1 | 1\n");
+		eo.append("  4 | 2\n");
+		eo.append(")\n");
+		eo.append("3 (\n");
+		eo.append("  2 | 2\n");
+		eo.append("  6 | -8\n");
+		eo.append(")\n");
+		eo.append("4 (\n");
+		eo.append("  1 | -4\n");
+		eo.append("  5 | 3\n");
+		eo.append(")\n");
+		eo.append("5 (\n");
+		eo.append("  2 | 7\n");
+		eo.append(")\n");
+		eo.append("6 (\n");
+		eo.append("  2 | 5\n");
+		eo.append("  3 | 10\n");
+		eo.append(")\n");
+		eo.append("64 (\n");
+		eo.append(")\n");
+
+		CHECK(out.str() == eo);
+	}
+
+	SECTION("Extractor works for empty graphs") {
+		auto g = gdwg::graph<int, int>();
+		auto oss = std::ostringstream{};
+		oss << g;
+		CHECK(oss.str().empty());
+	}
+}
+
+TEST_CASE("Iterator operators") {
+	auto g = gdwg::graph<int, int>{1, 2, 3};
+	REQUIRE(g.nodes().size() == 3);
+	REQUIRE(g.insert_edge(1, 2, 1));
+	REQUIRE(g.insert_edge(3, 1, 1));
+
+	SECTION("Prefix increment operator correctly moves iterator forward") {
+		auto it = g.begin();
+		CHECK(g.find(1, 2, 1) == it);
+
+		++it;
+		CHECK(g.find(3, 1, 1) == it);
+
+		++it;
+		CHECK(it == g.end());
+	}
+
+	SECTION("Postfix increment operator correctly returns") {
+		auto it1 = g.begin();
+		CHECK(it1++ == g.begin());
+	}
+
+	SECTION("Prefix decrement operator correctly moves iterator backwards") {
+		auto it = g.end();
+		--it;
+
+		CHECK(it == g.find(3, 1, 1));
+
+		--it;
+		CHECK(g.find(1, 2, 1) == it);
+
+		CHECK(it == g.begin());
+	}
+
+	SECTION("Postfix decrement operator correctly returns") {
+		auto it1 = g.end();
+		CHECK(it1-- == g.end());
+	}
+
+	SECTION("Iterator equality can be checked") {
+		auto it1 = g.begin();
+		auto it2 = g.begin();
+		CHECK(it1 == it2);
+
+		++it1;
+		++it2;
+		CHECK(it1 == it2);
+
+		++it1;
+		++it2;
+		CHECK(it1 == it2);
+
+		CHECK(it1 == g.end());
+		CHECK(it2 == g.end());
+
+		--it1;
+		CHECK(it1 == g.find(3, 1, 1));
+
+		--it2;
+		--it2;
+		CHECK(it2 == g.find(1, 2, 1));
+	}
+
+	SECTION("Iterators can be dereferenced") {
+		auto it = g.begin();
+		auto const& [src1, dst1, weight1] = *it;
+		CHECK(src1 == 1);
+		CHECK(dst1 == 2);
+		CHECK(weight1 == 1);
+		CHECK(g.find(1, 2, 1) == it);
+
+		++it;
+		auto const& [src2, dst2, weight2] = *it;
+		CHECK(src2 == 3);
+		CHECK(dst2 == 1);
+		CHECK(weight2 == 1);
+		CHECK(g.find(3, 1, 1) == it);
+
+		--it;
+		auto const& [src3, dst3, weight3] = *it;
+		CHECK(src3 == 1);
+		CHECK(dst3 == 2);
+		CHECK(weight3 == 1);
+		CHECK(g.find(1, 2, 1) == it);
 	}
 }

@@ -8,6 +8,7 @@
 #include <map>
 #include <memory>
 #include <set>
+#include <sstream>
 #include <utility>
 #include <vector>
 
@@ -333,9 +334,7 @@ namespace gdwg {
 		// otherwise.
 		// Complexity: O(n + e) where n is the sum of stored nodes in *this and other, and e is the
 		// sum of stored edges in *this and other.
-		// TODO(fix complexity)
 		[[nodiscard]] auto operator==(graph const& other) const -> bool {
-			// O(n)
 			auto const& this_nodes = nodes();
 			auto const& other_nodes = other.nodes();
 
@@ -343,17 +342,14 @@ namespace gdwg {
 				return false;
 			}
 
-			// O(n)
 			for (auto const& node : this_nodes) {
-				// O(log(n) + e) => O(n + e)
 				auto const& this_conns = connections(node);
 				auto const& other_conns = other.connections(node);
 				if (this_conns != other_conns) {
 					return false;
 				}
-				// O(e)
+
 				for (auto const& conn : this_conns) {
-					// O(n + e)
 					if (weights(node, conn) != other.weights(node, conn)) {
 						return false;
 					}
