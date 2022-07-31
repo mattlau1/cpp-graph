@@ -1,3 +1,15 @@
+/*
+Testing Rationale
+- Tests were created with the intent of discovering logic errors/bugs by verifying test output with
+manually computed expected outputs (i.e. from the assignment spec).
+- Correct outputs in tests were calculated manually and checked multiple times to ensure
+correctness and to avoid bias towards implementation details.
+- Checks were done using multiple internal functions to ensure test correctness even if one check
+fails. This also makes it easier to check if a function is working properly.
+- Proper code coverage was ensured by going through the code with test case inputs manually.
+- All test cases were made to be readable and easily understood/self explanatory.
+*/
+
 #include "gdwg/graph.hpp"
 
 #include <catch2/catch.hpp>
@@ -859,38 +871,73 @@ TEST_CASE("Graph extractor (operator<<)") {
 		auto out = std::ostringstream{};
 		out << g;
 
-		// adapted from spec
-		auto eo = std::string{};
-		eo.append("1 (\n");
-		eo.append("  5 | -1\n");
-		eo.append(")\n");
-		eo.append("2 (\n");
-		eo.append("  1 | 1\n");
-		eo.append("  4 | 2\n");
-		eo.append(")\n");
-		eo.append("3 (\n");
-		eo.append("  2 | 2\n");
-		eo.append("  6 | -8\n");
-		eo.append(")\n");
-		eo.append("4 (\n");
-		eo.append("  1 | -4\n");
-		eo.append("  5 | 3\n");
-		eo.append(")\n");
-		eo.append("5 (\n");
-		eo.append("  2 | 7\n");
-		eo.append(")\n");
-		eo.append("6 (\n");
-		eo.append("  2 | 5\n");
-		eo.append("  3 | 10\n");
-		eo.append(")\n");
-		eo.append("64 (\n");
-		eo.append(")\n");
+		auto expected_output = std::string{};
+		expected_output.append("1 (\n");
+		expected_output.append("  5 | -1\n");
+		expected_output.append(")\n");
+		expected_output.append("2 (\n");
+		expected_output.append("  1 | 1\n");
+		expected_output.append("  4 | 2\n");
+		expected_output.append(")\n");
+		expected_output.append("3 (\n");
+		expected_output.append("  2 | 2\n");
+		expected_output.append("  6 | -8\n");
+		expected_output.append(")\n");
+		expected_output.append("4 (\n");
+		expected_output.append("  1 | -4\n");
+		expected_output.append("  5 | 3\n");
+		expected_output.append(")\n");
+		expected_output.append("5 (\n");
+		expected_output.append("  2 | 7\n");
+		expected_output.append(")\n");
+		expected_output.append("6 (\n");
+		expected_output.append("  2 | 5\n");
+		expected_output.append("  3 | 10\n");
+		expected_output.append(")\n");
+		expected_output.append("64 (\n");
+		expected_output.append(")\n");
 
-		CHECK(out.str() == eo);
+		CHECK(out.str() == expected_output);
+	}
+
+	SECTION("Extractor works with given test case") {
+		auto g = gdwg::graph<std::string, int>{};
+		g.insert_node("hello");
+		g.insert_node("how");
+		g.insert_node("are");
+		g.insert_node("you?");
+
+		g.insert_edge("hello", "how", 5);
+		g.insert_edge("hello", "are", 8);
+		g.insert_edge("hello", "are", 2);
+
+		g.insert_edge("how", "you?", 1);
+		g.insert_edge("how", "hello", 4);
+
+		g.insert_edge("are", "you?", 3);
+		auto out = std::ostringstream{};
+		out << g;
+
+		auto expected_output = std::string{};
+		expected_output.append("are (\n");
+		expected_output.append("  you? | 3\n");
+		expected_output.append(")\n");
+		expected_output.append("hello (\n");
+		expected_output.append("  are | 2\n");
+		expected_output.append("  are | 8\n");
+		expected_output.append("  how | 5\n");
+		expected_output.append(")\n");
+		expected_output.append("how (\n");
+		expected_output.append("  hello | 4\n");
+		expected_output.append("  you? | 1\n");
+		expected_output.append(")\n");
+		expected_output.append("you? (\n");
+		expected_output.append(")\n");
+		CHECK(out.str() == expected_output);
 	}
 
 	SECTION("Extractor works for empty graphs") {
-		auto g = gdwg::graph<int, int>();
+		auto const& g = gdwg::graph<int, int>();
 		auto oss = std::ostringstream{};
 		oss << g;
 		CHECK(oss.str().empty());
