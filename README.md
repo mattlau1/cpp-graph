@@ -1,1 +1,1 @@
-# cpp-graph, a graph representation written in C++
+# a graph representation written in C++
